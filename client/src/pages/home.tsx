@@ -57,7 +57,19 @@ export default function Home() {
       });
       return;
     }
-    setState(prev => ({ ...prev, step: 'conversation', messages: [] }));
+    
+    const initialGreeting = state.isRtl
+      ? 'حياك الله! أنا مسبار، مستشارك المهني. خلنا نتعرف عليك أكثر عشان نكتشف نقاط قوتك وشغفك. بداية، قولي عن نفسك شوي، وش اللي تحب تسويه بوقت فراغك؟'
+      : "Hello! I'm Misbar, your career coach. Let's get to know you better to discover your strengths and passion. To start, tell me a bit about yourself - what do you enjoy doing in your free time?";
+
+    const initialMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: initialGreeting,
+      timestamp: new Date(),
+    };
+
+    setState(prev => ({ ...prev, step: 'conversation', messages: [initialMessage] }));
   };
 
   const handleAddMessage = (message: Message) => {
