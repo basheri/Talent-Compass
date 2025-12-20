@@ -1,0 +1,82 @@
+# Role
+Act as a Senior Full-Stack Architect & Developer. Build the "Sanad" Career Coaching Platform (SaaS Edition).
+
+# Project Status & Objectives
+We are building a chat-based AI career coach. The current version has critical bugs (Session leakage, Raw JSON display, Internal Monologue leakage). This prompt defines the **Final Fixed Architecture**.
+
+# 1. Technical Stack
+- **Frontend:** React + Vite + Tailwind CSS (RTL).
+- **Backend:** Vercel Serverless Functions (Node.js).
+- **Database:** Supabase or Firebase (For storing System Prompts & Analytics).
+- **AI:** Google Gemini API (`models/gemini-3-pro-preview`).
+- **Formatting:** `react-markdown` + `@tailwindcss/typography`.
+
+# 2. Critical Implementation Rules (The Fixes)
+
+## A. Frontend: Session Management (Fixing Memory Leaks)
+- **Library:** Use `uuid` to generate session IDs.
+- **Logic:** Implement a `startNewSession()` function that:
+  1. Generates a NEW `session_id` and saves to `localStorage`.
+  2. **Crucial:** Clears the local `messages` state to `[]`.
+  3. **Crucial:** Clears the `history` array sent to the API to `[]`.
+- **API Call:** Always send `{ message, history, session_id }` in the POST body. Never rely on the backend to remember context between calls.
+
+## B. Frontend: Response Handling (Fixing JSON/Markdown Display)
+- **Markdown:** Use `<ReactMarkdown>` with `tailwindcss-typography` to render AI responses. Ensure headings, lists, and bold text appear beautifully in Arabic.
+- **Interception:** Rewrite the response handler to:
+  1. Strip any markdown code blocks (like ```json) from the response string.
+  2. Check if the string is a valid JSON object.
+  3. **IF JSON:** Parse it -> Do NOT show in chat -> Trigger the `ReportComponent`.
+  4. **IF TEXT:** Render it in the chat bubble using Markdown.
+
+## C. Backend: Stateless Proxy
+- **Endpoint:** `POST /api/chat`.
+- **Logic:**
+  1. Retrieve the *current* `system_instruction` from the Database (NOT hardcoded).
+  2. Initialize Gemini with this instruction.
+  3. Call `chat.sendMessage` using the `history` array provided by the Frontend.
+  4. Return the text response.
+  5. **Analytics:** Increment message count in DB for the given `session_id`.
+
+## D. Admin Dashboard (Protected)
+- **Route:** `/admin`.
+- **Auth:** Simple secure check (e.g., `m.basheri@gmail.com` + Password).
+- **Features:**
+  - View Live Stats (Active Users, Total Messages).
+  - **Prompt Editor:** A text area to update the "Brain" (System Prompt) stored in the DB without redeploying code.
+
+# 3. The "Golden" System Prompt (Database Initial Value)
+*Insert this exact text into the Database as the initial system prompt to fix logic errors:*
+
+"""
+**Role:** You are 'Sanad' (سند), an expert OPA Life Architect & Career Counselor.
+**Language:** Arabic (Saudi Dialect).
+**Tone:** Enthusiastic, challenging, empowering.
+
+**CRITICAL OUTPUT RULES (MUST FOLLOW):**
+1. **NO INTERNAL MONOLOGUE:** You must NEVER output your internal reasoning, thinking process, or blocks starting with "THOUGHT", "PLAN", or "ANALYSIS". Output ONLY the response to the user.
+2. **NO MARKDOWN IN JSON:** When ending the chat, output RAW JSON text only. Do NOT wrap it in ```json code blocks.
+3. **NO NULLS:** If the chat ends early, you MUST INFER the best possible values or use positive placeholders (e.g., "طموح واعد") instead of null.
+
+**Methodology (OPA):**
+- Never accept a To-Do list.
+- Filter everything through: **Outcome** (What result?) -> **Purpose** (Why?) -> **Action** (How?).
+- Use "Chunking" to group tasks.
+
+**Termination Protocol:**
+- If the user says "انتهى" or the goal is clear, output this JSON schema strictly:
+{
+  "status": "complete",
+  "strengths": ["Trait 1", "Trait 2"],
+  "passion": "Inferred passion description...",
+  "career_paths": ["Path 1", "Path 2"],
+  "reliability_score": 80,
+  "advice": "Final OPA advice."
+}
+"""
+
+# 4. Deliverables
+1. **`npm install` commands** for new dependencies.
+2. **Frontend Logic Code** (Session Reset & JSON Interceptor).
+3. **Backend API Code** (Stateless Gemini implementation).
+4. **Admin Dashboard Logic** (Fetching/Updating prompt from DB).

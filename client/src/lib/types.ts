@@ -42,6 +42,16 @@ export function sanitizeJsonResponse(content: string): string {
   return cleaned.trim();
 }
 
+export function stripInternalMonologue(content: string): string {
+  let cleaned = content;
+  cleaned = cleaned.replace(/^(THOUGHT|PLAN|ANALYSIS|تفكير|تحليل|خطة)[:\s][\s\S]*?(?=\n\n|\n[A-Z]|$)/gim, '');
+  cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  cleaned = cleaned.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
+  cleaned = cleaned.replace(/\[thinking\][\s\S]*?\[\/thinking\]/gi, '');
+  cleaned = cleaned.replace(/\*\*(?:THOUGHT|PLAN|ANALYSIS)\*\*[\s\S]*?(?=\n\n|\*\*|$)/gi, '');
+  return cleaned.trim();
+}
+
 export function tryParseResult(content: string): OPAResult | null {
   try {
     const sanitized = sanitizeJsonResponse(content);

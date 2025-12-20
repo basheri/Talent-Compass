@@ -4,8 +4,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Loader2, Bot, User } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import type { Message, OPAResult } from '@/lib/types';
-import { tryParseResult } from '@/lib/types';
+import { tryParseResult, stripInternalMonologue } from '@/lib/types';
 import { sendMessage } from '@/lib/ai-service';
 
 interface ConversationProps {
@@ -51,20 +52,21 @@ export function Conversation({
     setIsLoading(true);
 
     try {
-      const response = await sendMessage(
+      const rawResponse = await sendMessage(
         [...messages, userMessage],
         language
       );
 
-      const result = tryParseResult(response);
+      const result = tryParseResult(rawResponse);
       
       if (result) {
         onComplete(result);
       } else {
+        const cleanedContent = stripInternalMonologue(rawResponse);
         const assistantMessage: Message = {
           id: crypto.randomUUID(),
           role: 'assistant',
-          content: response,
+          content: cleanedContent,
           timestamp: new Date(),
         };
         onAddMessage(assistantMessage);
@@ -141,9 +143,15 @@ export function Conversation({
                         : 'bg-muted'
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                      {message.content}
-                    </p>
+                    <div className={`text-sm leading-relaxed prose prose-sm max-w-none ${
+                      message.role === 'user' 
+                        ? 'prose-invert' 
+                        : 'dark:prose-invert'
+                    }`}>
+                      <ReactMarkdown>
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               ))}
