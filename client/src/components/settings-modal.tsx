@@ -153,7 +153,7 @@ export function SettingsModal({ open, onOpenChange, isRtl }: SettingsModalProps)
             onClick={handleSave} 
             disabled={!apiKeyValue.trim() || saved}
             className="flex-1 sm:flex-none"
-            data-testid="button-save-key"
+            data-testid="button-save-api-key"
           >
             {saved ? (
               <>
