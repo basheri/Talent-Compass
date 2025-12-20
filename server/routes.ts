@@ -73,7 +73,12 @@ export async function registerRoutes(
         contents,
       });
 
-      const text = response.text || '';
+      let text = '';
+      if (response.text) {
+        text = typeof response.text === 'function' ? response.text() : response.text;
+      } else if (response.candidates?.[0]?.content?.parts?.[0]?.text) {
+        text = response.candidates[0].content.parts[0].text;
+      }
       res.json({ content: text });
     } catch (error) {
       console.error("Chat error:", error);
