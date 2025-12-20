@@ -44,8 +44,8 @@ export default function Home() {
 
   const handleStartJourney = () => {
     const initialGreeting = state.isRtl
-      ? 'مرحبا! أنا مهندس حياتك OPA. أنا هنا لأساعدك تحول أفكارك ومهامك إلى خطة حياة واضحة. لنبدأ... ما هي النتيجة المحددة التي تريد تحقيقها الآن؟ لا تعطيني قائمة مهام - أخبرني عن النتيجة النهائية التي تسعى لها.'
-      : "Hello! I'm your OPA Life Architect. I'm here to help you transform your scattered ideas into a clear life plan. Let's begin... What is the specific OUTCOME you want to achieve right now? Don't give me a to-do list - tell me about the end result you're after.";
+      ? 'مرحبا! أنا سند، مهندس حياتك. أنا هنا لأساعدك تحول أفكارك ومهامك إلى خطة حياة واضحة. لنبدأ... ما هي النتيجة المحددة التي تريد تحقيقها الآن؟ لا تعطيني قائمة مهام - أخبرني عن النتيجة النهائية التي تسعى لها.'
+      : "Hello! I'm Sanad, your Life Architect. I'm here to help you transform your scattered ideas into a clear life plan. Let's begin... What is the specific OUTCOME you want to achieve right now? Don't give me a to-do list - tell me about the end result you're after.";
 
     const initialMessage: Message = {
       id: crypto.randomUUID(),

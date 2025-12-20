@@ -86,13 +86,13 @@ export function Conversation({
 
   const labels = isRtl
     ? {
-        title: 'محادثة مع مهندس الحياة',
+        title: 'محادثة مع سند',
         placeholder: 'اكتب رسالتك هنا...',
         send: 'إرسال',
         thinking: 'جاري التفكير...',
       }
     : {
-        title: 'Chat with Life Architect',
+        title: 'Chat with Sanad',
         placeholder: 'Type your message here...',
         send: 'Send',
         thinking: 'Thinking...',

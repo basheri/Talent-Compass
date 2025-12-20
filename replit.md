@@ -1,8 +1,8 @@
-# OPA Life Architect (مهندس الحياة)
+# Sanad - Life Architect (سند - مهندس الحياة)
 
 ## Overview
 
-A chat-based AI life coaching tool based on Anthony Robbins' "Time of Your Life" methodology. The OPA Life Architect rejects traditional time management (to-do lists) and enforces Life Management through the O.P.A. framework: Outcome, Purpose, Action. The AI coach is energetic, challenging, and empowering.
+A chat-based AI life coaching tool based on Anthony Robbins' "Time of Your Life" methodology. Sanad (سند - meaning "support" in Arabic) rejects traditional time management (to-do lists) and enforces Life Management through the O.P.A. framework: Outcome, Purpose, Action. The AI coach is energetic, challenging, and empowering.
 
 ## User Preferences
 
@@ -21,7 +21,7 @@ A chat-based AI life coaching tool based on Anthony Robbins' "Time of Your Life"
 ### AI Integration
 - **Provider:** Google Gemini via @google/genai SDK
 - **Model:** gemini-2.5-flash
-- **Character:** "OPA Life Architect" - Expert AI Coach based on Tony Robbins
+- **Character:** "Sanad" (سند) - Expert AI Life Architect based on Tony Robbins
 - **Methodology:** Anthony Robbins' "Time of Your Life" O.P.A. Framework
   - **Outcome (O):** What is the specific result you want?
   - **Purpose (P):** Why do you want it? (Emotional fuel)

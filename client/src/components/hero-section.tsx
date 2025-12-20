@@ -11,10 +11,10 @@ export function HeroSection({ isRtl, onStart }: HeroSectionProps) {
 
   const content = isRtl
     ? {
-        badge: 'مهندس الحياة - منهجية أنتوني روبنز',
-        title: 'OPA',
+        badge: 'سند - مهندس الحياة | منهجية أنتوني روبنز',
+        title: 'سند',
         titleHighlight: 'حياتك... ليست قائمة مهام',
-        description: 'مرحبا! أنا مهندس حياتك OPA. سنحول أفكارك المتناثرة إلى خطة حياة واضحة باستخدام منهجية O.P.A. - النتيجة، الغرض، الإجراء. هل أنت مستعد لتحويل حياتك؟',
+        description: 'مرحبا! أنا سند، مهندس حياتك. سنحول أفكارك المتناثرة إلى خطة حياة واضحة باستخدام منهجية O.P.A. - النتيجة، الغرض، الإجراء. هل أنت مستعد لتحويل حياتك؟',
         ctaStart: 'ابدأ الآن',
         features: [
           { icon: Target, text: 'نتائج واضحة' },
@@ -23,10 +23,10 @@ export function HeroSection({ isRtl, onStart }: HeroSectionProps) {
         ],
       }
     : {
-        badge: 'Life Architect - Tony Robbins Methodology',
-        title: 'OPA',
+        badge: 'Sanad - Life Architect | Tony Robbins Methodology',
+        title: 'Sanad',
         titleHighlight: 'Your Life... Not a To-Do List',
-        description: "Hello! I'm your OPA Life Architect. We'll transform your scattered ideas into a clear life plan using the O.P.A. methodology - Outcome, Purpose, Action. Ready to transform your life?",
+        description: "Hello! I'm Sanad, your Life Architect. We'll transform your scattered ideas into a clear life plan using the O.P.A. methodology - Outcome, Purpose, Action. Ready to transform your life?",
         ctaStart: 'Start Now',
         features: [
           { icon: Target, text: 'Clear Outcomes' },
