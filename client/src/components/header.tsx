@@ -11,8 +11,8 @@ export function Header({ isRtl, onToggleLanguage }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
 
   const labels = isRtl
-    ? { title: 'سند', subtitle: 'مهندس الحياة' }
-    : { title: 'Sanad', subtitle: 'Life Architect' };
+    ? { title: 'سند', subtitle: 'المستشار الاستراتيجي' }
+    : { title: 'Sanad', subtitle: 'Strategic Consultant' };
 
   return (
     <header 

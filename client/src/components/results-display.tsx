@@ -3,13 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
-  Target,
+  Star,
   Heart,
-  Zap,
-  CheckCircle2,
-  Circle,
+  Compass,
+  Lightbulb,
   RefreshCw,
-  Clock
+  TrendingUp
 } from 'lucide-react';
 import type { OPAResult } from '@/lib/types';
 import { DownloadReportButton } from './sanad-report-pdf';
@@ -23,34 +22,36 @@ interface ResultsDisplayProps {
 export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps) {
   const labels = isRtl
     ? {
-        title: 'خطة حياتك OPA',
-        subtitle: 'نتائج مهندس الحياة',
+        title: 'تحليلك الاستراتيجي',
+        subtitle: 'نتائج المستشار الاستراتيجي',
         exportPdf: 'تحميل التقرير PDF',
         startNew: 'بدء جلسة جديدة',
-        outcome: 'النتيجة المطلوبة',
-        purpose: 'الغرض العاطفي',
-        role: 'هويتك التمكينية',
-        musts: 'يجب - MUSTS (أولوية قصوى)',
-        shoulds: 'ينبغي - SHOULDS',
-        timeZone: 'منطقة الوقت',
-        reliabilityScore: 'نسبة التركيز',
-        preparedBy: 'تم إعداد هذا بواسطة OPA Life Architect',
+        strengths: 'نقاط القوة',
+        passion: 'الشغف والدافع العميق',
+        careerPaths: 'المسارات المهنية المقترحة',
+        advice: 'النصيحة الاستراتيجية',
+        reliabilityScore: 'نسبة الثقة',
+        preparedBy: 'تم إعداد هذا بواسطة سند - المستشار الاستراتيجي',
         generatedOn: 'تاريخ الإعداد',
+        safeRoute: 'المسار الآمن',
+        aggressiveRoute: 'مسار النمو السريع',
+        blueOcean: 'المسار الفريد',
       }
     : {
-        title: 'Your OPA Life Plan',
-        subtitle: 'Life Architect Results',
+        title: 'Your Strategic Analysis',
+        subtitle: 'Elite Career Consultant Results',
         exportPdf: 'Download PDF Report',
         startNew: 'Start New Session',
-        outcome: 'Your Outcome',
-        purpose: 'Your Purpose (The Juice)',
-        role: 'Your Empowering Identity',
-        musts: 'MUSTS (High Priority)',
-        shoulds: 'SHOULDS',
-        timeZone: 'Time Zone',
-        reliabilityScore: 'Focus Score',
-        preparedBy: 'Prepared by OPA Life Architect',
+        strengths: 'Your Strengths',
+        passion: 'Your Deep Passion & Drive',
+        careerPaths: 'Recommended Career Paths',
+        advice: 'Strategic Advice',
+        reliabilityScore: 'Confidence Score',
+        preparedBy: 'Prepared by Sanad - Elite Strategic Consultant',
         generatedOn: 'Generated on',
+        safeRoute: 'Safe Route',
+        aggressiveRoute: 'Aggressive Growth',
+        blueOcean: 'Blue Ocean Niche',
       };
 
   const currentDate = new Date().toLocaleDateString(isRtl ? 'ar-SA' : 'en-US', {
@@ -58,6 +59,28 @@ export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps
     month: 'long',
     day: 'numeric',
   });
+
+  const getPathIcon = (index: number) => {
+    switch (index) {
+      case 0:
+        return <Compass className="h-5 w-5" />;
+      case 1:
+        return <TrendingUp className="h-5 w-5" />;
+      default:
+        return <Star className="h-5 w-5" />;
+    }
+  };
+
+  const getPathVariant = (index: number): 'default' | 'secondary' | 'outline' => {
+    switch (index) {
+      case 0:
+        return 'secondary';
+      case 1:
+        return 'default';
+      default:
+        return 'outline';
+    }
+  };
 
   return (
     <section className="py-8 px-4 md:px-6" dir={isRtl ? 'rtl' : 'ltr'}>
@@ -102,116 +125,87 @@ export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps
             <Progress value={result.reliability_score} className="w-32 h-3" />
           </div>
 
-          <Card data-testid="card-outcome">
+          <Card data-testid="card-strengths">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Target className="h-5 w-5 text-primary" />
-                {labels.outcome}
+                <Star className="h-5 w-5 text-primary" />
+                {labels.strengths}
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-lg font-medium" data-testid="text-outcome">
-                {result.outcome}
-              </p>
+            <CardContent className="flex flex-wrap gap-2">
+              {result.strengths.map((strength, index) => (
+                <Badge 
+                  key={index} 
+                  variant="default" 
+                  className="text-sm py-1 px-3"
+                  data-testid={`badge-strength-${index}`}
+                >
+                  {strength}
+                </Badge>
+              ))}
             </CardContent>
           </Card>
 
-          <Card data-testid="card-purpose">
+          <Card data-testid="card-passion">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Heart className="h-5 w-5 text-primary" />
-                {labels.purpose}
+                {labels.passion}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground leading-relaxed" data-testid="text-purpose">
-                {result.purpose}
+              <p className="text-muted-foreground leading-relaxed" data-testid="text-passion">
+                {result.passion}
               </p>
             </CardContent>
           </Card>
 
-          <Card data-testid="card-role">
+          <Card data-testid="card-career-paths">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Zap className="h-5 w-5 text-primary" />
-                {labels.role}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Badge variant="default" className="text-base py-2 px-4" data-testid="badge-role">
-                {result.role}
-              </Badge>
-            </CardContent>
-          </Card>
-
-          <Card data-testid="card-musts">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <CheckCircle2 className="h-5 w-5 text-primary" />
-                {labels.musts}
+                <Compass className="h-5 w-5 text-primary" />
+                {labels.careerPaths}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {result.musts.map((action, index) => (
+              {result.career_paths.map((path, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-3 p-4 rounded-lg bg-primary/10 border border-primary/20"
-                  data-testid={`must-action-${index}`}
+                  className="flex items-center gap-3 p-4 rounded-lg bg-muted/50"
+                  data-testid={`career-path-${index}`}
                 >
-                  <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                    <span className="text-primary-foreground font-bold text-sm">{index + 1}</span>
+                  <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    {getPathIcon(index)}
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium" data-testid={`text-must-${index}`}>{action}</p>
+                    <p className="font-medium" data-testid={`text-path-${index}`}>{path}</p>
                   </div>
+                  <Badge variant={getPathVariant(index)} className="text-xs">
+                    {index === 0 ? (isRtl ? 'آمن' : 'Safe') : 
+                     index === 1 ? (isRtl ? 'نمو' : 'Growth') : 
+                     (isRtl ? 'فريد' : 'Unique')}
+                  </Badge>
                 </div>
               ))}
             </CardContent>
           </Card>
 
-          {result.shoulds && result.shoulds.length > 0 && (
-            <Card data-testid="card-shoulds">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Circle className="h-5 w-5 text-muted-foreground" />
-                  {labels.shoulds}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {result.shoulds.map((action, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
-                    data-testid={`should-action-${index}`}
-                  >
-                    <Circle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <p className="text-muted-foreground" data-testid={`text-should-${index}`}>{action}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          <Card data-testid="card-time-zone">
+          <Card data-testid="card-advice" className="border-primary/30 bg-primary/5">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Clock className="h-5 w-5 text-primary" />
-                {labels.timeZone}
+                <Lightbulb className="h-5 w-5 text-primary" />
+                {labels.advice}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Badge 
-                variant={result.time_zone?.toLowerCase().includes('zone') ? 'default' : 'secondary'} 
-                className="text-sm py-1 px-3"
-                data-testid="badge-time-zone"
-              >
-                {result.time_zone || 'The Zone'}
-              </Badge>
+              <p className="text-lg font-medium leading-relaxed" data-testid="text-advice">
+                {result.advice}
+              </p>
             </CardContent>
           </Card>
 
           <div className="text-center pt-6 border-t text-xs text-muted-foreground print:block">
-            <p>OPA Life Architect - Time of Your Life</p>
+            <p>Sanad - Elite Strategic Career Consultant</p>
             <p>{currentDate}</p>
           </div>
         </div>

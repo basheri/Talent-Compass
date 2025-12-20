@@ -7,13 +7,11 @@ export interface Message {
 
 export interface OPAResult {
   status: 'complete';
-  outcome: string;
-  purpose: string;
-  role: string;
-  musts: string[];
-  shoulds: string[];
-  time_zone: string;
+  strengths: string[];
+  passion: string;
+  career_paths: string[];
   reliability_score: number;
+  advice: string;
 }
 
 export type MisbarResult = OPAResult;
@@ -80,28 +78,24 @@ export function tryParseResult(content: string): OPAResult | null {
 function validateAndNormalize(parsed: any): OPAResult | null {
   if (parsed.status !== 'complete') return null;
   
-  const outcome = parsed.outcome || 'هدف طموح';
-  const purpose = parsed.purpose || 'تحقيق الذات';
-  const role = parsed.role || 'قائد التغيير';
-  const musts = Array.isArray(parsed.musts) && parsed.musts.length > 0 
-    ? parsed.musts.filter((m: any) => m != null) 
-    : ['خطوة أولى مهمة'];
-  const shoulds = Array.isArray(parsed.shoulds) 
-    ? parsed.shoulds.filter((s: any) => s != null) 
-    : [];
-  const time_zone = parsed.time_zone || 'The Zone';
+  const strengths = Array.isArray(parsed.strengths) && parsed.strengths.length > 0 
+    ? parsed.strengths.filter((s: any) => s != null) 
+    : ['طموح واعد', 'إرادة قوية'];
+  const passion = parsed.passion || 'شغف بتحقيق الذات والنمو المستمر';
+  const career_paths = Array.isArray(parsed.career_paths) && parsed.career_paths.length > 0 
+    ? parsed.career_paths.filter((p: any) => p != null) 
+    : ['مسار آمن', 'مسار نمو سريع'];
   const reliability_score = typeof parsed.reliability_score === 'number' 
     ? parsed.reliability_score 
     : 70;
+  const advice = parsed.advice || 'ابدأ بخطوة صغيرة اليوم نحو هدفك الكبير';
 
   return {
     status: 'complete',
-    outcome,
-    purpose,
-    role,
-    musts: musts.length > 0 ? musts : ['ابدأ الآن'],
-    shoulds,
-    time_zone,
+    strengths: strengths.length > 0 ? strengths : ['طموح واعد'],
+    passion,
+    career_paths: career_paths.length > 0 ? career_paths : ['مسار واعد'],
     reliability_score,
+    advice,
   };
 }

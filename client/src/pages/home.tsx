@@ -44,8 +44,8 @@ export default function Home() {
 
   const handleStartJourney = () => {
     const initialGreeting = state.isRtl
-      ? 'مرحبا! أنا سند، مهندس حياتك. أنا هنا لأساعدك تحول أفكارك ومهامك إلى خطة حياة واضحة. لنبدأ... ما هي النتيجة المحددة التي تريد تحقيقها الآن؟ لا تعطيني قائمة مهام - أخبرني عن النتيجة النهائية التي تسعى لها.'
-      : "Hello! I'm Sanad, your Life Architect. I'm here to help you transform your scattered ideas into a clear life plan. Let's begin... What is the specific OUTCOME you want to achieve right now? Don't give me a to-do list - tell me about the end result you're after.";
+      ? 'مرحباً! أنا سند، مستشارك الاستراتيجي. أنا هنا لأساعدك في اكتشاف نقاط قوتك الخفية ورسم مسارك المهني. أخبرني... ما هو الهدف أو التحول الذي تسعى لتحقيقه في حياتك المهنية؟'
+      : "Hello! I'm Sanad, your Elite Strategic Career Consultant. I'm here to help you discover your hidden strengths and chart your career path. Tell me... what goal or transformation are you seeking in your career?";
 
     const initialMessage: Message = {
       id: crypto.randomUUID(),

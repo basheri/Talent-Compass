@@ -11,27 +11,27 @@ export function HeroSection({ isRtl, onStart }: HeroSectionProps) {
 
   const content = isRtl
     ? {
-        badge: 'سند - مهندس الحياة | منهجية أنتوني روبنز',
+        badge: 'سند - المستشار الاستراتيجي',
         title: 'سند',
-        titleHighlight: 'حياتك... ليست قائمة مهام',
-        description: 'مرحبا! أنا سند، مهندس حياتك. سنحول أفكارك المتناثرة إلى خطة حياة واضحة باستخدام منهجية O.P.A. - النتيجة، الغرض، الإجراء. هل أنت مستعد لتحويل حياتك؟',
+        titleHighlight: 'ارتقِ بتفكيرك المهني',
+        description: 'مرحباً! أنا سند، مستشارك الاستراتيجي. سأساعدك في اكتشاف نقاط قوتك الخفية، تحليل الفجوات في مسارك، وتصميم خطة مهنية استراتيجية. هل أنت مستعد للتحول؟',
         ctaStart: 'ابدأ الآن',
         features: [
-          { icon: Target, text: 'نتائج واضحة' },
-          { icon: Zap, text: 'طاقة وتحفيز' },
-          { icon: FileText, text: 'خطة عمل PDF' },
+          { icon: Target, text: 'اكتشاف نقاط القوة' },
+          { icon: Zap, text: 'مسارات مهنية' },
+          { icon: FileText, text: 'تقرير استراتيجي PDF' },
         ],
       }
     : {
-        badge: 'Sanad - Life Architect | Tony Robbins Methodology',
+        badge: 'Sanad - Elite Strategic Consultant',
         title: 'Sanad',
-        titleHighlight: 'Your Life... Not a To-Do List',
-        description: "Hello! I'm Sanad, your Life Architect. We'll transform your scattered ideas into a clear life plan using the O.P.A. methodology - Outcome, Purpose, Action. Ready to transform your life?",
+        titleHighlight: 'Upgrade Your Career Thinking',
+        description: "Hello! I'm Sanad, your Elite Strategic Consultant. I'll help you discover hidden strengths, analyze gaps in your path, and design a strategic career plan. Ready to transform?",
         ctaStart: 'Start Now',
         features: [
-          { icon: Target, text: 'Clear Outcomes' },
-          { icon: Zap, text: 'Energy & Drive' },
-          { icon: FileText, text: 'Action Plan PDF' },
+          { icon: Target, text: 'Discover Strengths' },
+          { icon: Zap, text: 'Career Paths' },
+          { icon: FileText, text: 'Strategic Report PDF' },
         ],
       };
 

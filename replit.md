@@ -1,8 +1,8 @@
-# Sanad - Life Architect (سند - مهندس الحياة)
+# Sanad - Elite Strategic Career Consultant (سند - المستشار الاستراتيجي)
 
 ## Overview
 
-A chat-based AI life coaching tool based on Anthony Robbins' "Time of Your Life" methodology. Sanad (سند - meaning "support" in Arabic) rejects traditional time management (to-do lists) and enforces Life Management through the O.P.A. framework: Outcome, Purpose, Action. The AI coach is energetic, challenging, and empowering.
+A chat-based AI career consulting tool. Sanad (سند - meaning "support" in Arabic) is an Elite Strategic Career Consultant that upgrades user thinking rather than just repeating what they say. Uses gap analysis, reality checks, and counter-intuitive strategies to provide actionable insights.
 
 ## User Preferences
 
@@ -21,39 +21,51 @@ A chat-based AI life coaching tool based on Anthony Robbins' "Time of Your Life"
 ### AI Integration
 - **Provider:** Google Gemini via @google/genai SDK
 - **Model:** gemini-2.5-flash
-- **Character:** "Sanad" (سند) - Expert AI Life Architect based on Tony Robbins
-- **Methodology:** Anthony Robbins' "Time of Your Life" O.P.A. Framework
-  - **Outcome (O):** What is the specific result you want?
-  - **Purpose (P):** Why do you want it? (Emotional fuel)
-  - **Action (A):** The Massive Action Plan (MAP)
-- **Operational Rules:**
-  - **Chunking:** Groups scattered tasks into OPA Blocks based on common outcomes
-  - **80/20 Filter:** Marks 20% high-impact actions as MUSTS, rest as SHOULDS
-  - **Identity & Roles:** Uses empowering labels (e.g., "Physical Vitality" not "Diet")
-  - **Time Zones:** Warns about "Dimension of Delusion" (urgent but unimportant), guides to "The Zone" (important but not urgent)
-- **Behavior:** Energetic, challenging, empowering. Asks ONE question at a time.
-- **Auto-Termination:** AI decides when to stop based on gathered Outcome, Purpose, and Action Plan
+- **Character:** "Sanad" (سند) - Elite Strategic Career Consultant
+- **Analysis Protocols:**
+  - **No Echoing:** Never just rephrase user input; elevate their ambition
+  - **Gap Analysis:** Analyze gap between current state and ambition
+  - **Reality Check:** Challenge unrealistic goals politely but firmly
+  - **Insight Factor:** Provide strategies the user didn't mention
+  - **Mental Models:** Uses 80/20 Rule, Blue Ocean Strategy, etc.
+- **Behavior:** Asks ONE question at a time, upgrades thinking
+- **Auto-Termination:** AI decides when to stop based on gathered strategic info
 - **Output Protocol:** Returns raw JSON (no markdown) with `status: "complete"` when finished
+
+### JSON Output Schema
+```json
+{
+  "status": "complete",
+  "strengths": ["Hidden Strength (Inferred)", "Visible Strength"],
+  "passion": "Deep psychological analysis of WHY they want this",
+  "career_paths": [
+    "Path 1: The Safe Route (Low Risk)",
+    "Path 2: The Aggressive Growth Route (High Reward)",
+    "Path 3: The Blue Ocean Niche (Unique)"
+  ],
+  "reliability_score": 85,
+  "advice": "Strategic insight bridging current reality and dream"
+}
+```
 
 ### Application Flow
 1. **Landing:** Clean welcome screen with "Start Now" button
-2. **Chat Phase:** AI conducts O.P.A. interview, processing user input through the framework
-3. **Report Phase:** When valid JSON detected with `"status": "complete"`, hide chat and render OPA Plan View
-4. **PDF Export:** Download professional A4 life plan using @react-pdf/renderer with Cairo Arabic font
+2. **Chat Phase:** AI conducts strategic interview, upgrading user thinking
+3. **Report Phase:** When valid JSON detected with `"status": "complete"`, hide chat and render Strategic Analysis View
+4. **PDF Export:** Download professional A4 career plan using @react-pdf/renderer with Cairo Arabic font
 
 ### Key Files
 - `client/src/pages/home.tsx` - Main application page with state management
 - `client/src/pages/admin.tsx` - Admin dashboard with analytics and prompt editor
-- `client/src/lib/types.ts` - TypeScript types (OPAResult) and JSON sanitization utilities
+- `client/src/lib/types.ts` - TypeScript types (OPAResult with strengths, passion, career_paths, reliability_score, advice)
 - `client/src/lib/ai-service.ts` - Frontend service that calls backend API with session tracking
 - `client/src/lib/session.ts` - Session ID management for analytics
 - `server/routes.ts` - Backend API routes for chat, auth, and admin
 - `server/storage.ts` - Database storage for prompts, sessions, and analytics
 - `shared/schema.ts` - Drizzle schema for system_prompts, chat_sessions, chat_messages
 - `client/src/components/conversation.tsx` - Chat interface with auto-completion detection
-- `client/src/components/results-display.tsx` - OPA Plan view with PDF export
+- `client/src/components/results-display.tsx` - Strategic Analysis view with PDF export
 - `client/src/components/sanad-report-pdf.tsx` - PDF report component using @react-pdf/renderer
-- `public/fonts/Cairo-*.ttf` - Cairo Arabic font for proper RTL rendering in PDF
 - `client/src/index.css` - Sage Green theme colors
 
 ### Environment Variables
@@ -64,10 +76,9 @@ A chat-based AI life coaching tool based on Anthony Robbins' "Time of Your Life"
 
 ### Features
 - **Secure Backend:** API key stored server-side as secret
-- **O.P.A. Framework:** Anthony Robbins' "Time of Your Life" methodology
-- **Chunking:** Groups tasks into outcome-based blocks
-- **80/20 Filter:** Prioritizes high-impact actions as MUSTS
-- **Empowering Identity:** Transforms boring labels into empowering roles
+- **Strategic Analysis:** Gap analysis, reality checks, counter-intuitive strategies
+- **Career Paths:** Safe, Growth, and Blue Ocean niche options
+- **Strengths Discovery:** Infers hidden strengths from conversation
 - **JSON Sanitization:** Strips markdown code blocks before parsing AI response
 - **Error Handling:** Toast notifications for API errors
 - **Theme Support:** Light/Dark mode toggle
