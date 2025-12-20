@@ -8,12 +8,35 @@ import { STORAGE_KEYS } from '@/lib/types';
 import { clearChatSession } from '@/lib/ai-service';
 import { useToast } from '@/hooks/use-toast';
 
+const MOCK_RESULT: OPAResult = {
+  status: 'complete',
+  strengths: [
+    'التفكير الاستراتيجي',
+    'القدرة على التحليل العميق',
+    'مهارات القيادة الفطرية',
+    'التواصل الفعال'
+  ],
+  passion: 'شغفك الحقيقي يكمن في بناء أنظمة وحلول تغير حياة الناس للأفضل. أنت لا تبحث عن وظيفة عادية، بل عن رسالة تتركها في هذا العالم.',
+  career_paths: [
+    'المسار الآمن: مدير مشاريع تقنية في شركة كبرى',
+    'مسار النمو السريع: مؤسس شركة ناشئة في مجال التقنية',
+    'المسار الفريد: مستشار استراتيجي للشركات الناشئة'
+  ],
+  reliability_score: 87,
+  advice: 'استثمر في بناء شبكة علاقاتك المهنية قبل الانتقال. الفرص الكبرى تأتي من الأشخاص وليس من الإعلانات.'
+};
+
 export default function Home() {
   const { toast } = useToast();
+  
+  // Check for test mode via URL parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  const isTestMode = urlParams.get('test') === 'pdf';
+  
   const [state, setState] = useState<AppState>({
-    step: 'welcome',
+    step: isTestMode ? 'results' : 'welcome',
     messages: [],
-    result: null,
+    result: isTestMode ? MOCK_RESULT : null,
     isLoading: false,
     isRtl: true,
     language: 'ar',
