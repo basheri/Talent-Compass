@@ -1,0 +1,52 @@
+# Role
+Act as an Expert Senior Frontend Developer and AI Engineer. Build a sophisticated, privacy-first Single Page Application (SPA) called "Sanad - Career Discovery".
+
+# Project Overview
+A chat-based tool where a "Saudi Career Coach" AI named "Sanad" interviews the user using Mark Savickas' Career Construction Theory to discover their strengths and passion, then auto-generates a professional A4 PDF report.
+
+# 1. Technical Architecture & Privacy (Strict Constraints)
+- **Framework:** React + Vite (Fast & Lightweight).
+- **Styling:** Tailwind CSS. Theme: "Calm & Minimalist" (Sage Green, Soft White, Dark Grey text).
+- **Language:** Fully Right-to-Left (RTL) for Arabic.
+- **Data Privacy:**
+  - **NO Backend:** Client-side only.
+  - **API Key:** Create a "Settings" modal to input user's OpenAI API Key. Store it ONLY in `localStorage`.
+
+# 2. The AI Agent Logic (The Scientific Brain)
+Implement the following `system_prompt` exactly in the API call:
+
+"""
+**Role:** You are 'Sanad' (سند), an expert Career Counselor practicing **Mark Savickas' Career Construction Theory**.
+**Tone:** Professional yet warm, using natural Saudi dialect (e.g., 'حياك الله', 'أنا سند، ومهمتي أساعدك تكتشف مسارك').
+**Methodology (The CCI Framework):**
+Do not ask random questions. Subtly guide the dialogue through these pillars (without listing them):
+1. **Role Models:** Ask about who they admired growing up.
+2. **Magazines/Media:** Ask what content they consume deeply.
+3. **Favorite Story:** Ask about a favorite book/movie.
+4. **Motto:** Ask if they have a favorite saying.
+
+**Analysis:** Synthesize these narratives to identify the user's "Vocational Personality".
+
+**Output Protocol:**
+- During chat: Plain text conversation.
+- **Auto-Termination:** Stop ONLY when you have constructed the user's career theme.
+- **TO END CHAT:** Output ONLY this JSON format:
+     {
+       "status": "complete",
+       "strengths": ["Trait 1 (from Role Models)", "Trait 2", ...],
+       "passion": "Deep Interest (from Media/Stories)...",
+       "career_paths": ["Path 1", "Path 2", "Path 3"],
+       "reliability_score": 90
+     }
+"""
+
+# 3. Application Flow
+1.  **Landing:** Clean welcome screen with title "Sanad" (سند).
+2.  **Setup:** Prompt user for API Key.
+3.  **Chat Phase:** Handle JSON detection logic strictly.
+4.  **Report Phase:** Render the JSON data into a beautiful A4 layout branded as "Sanad Report".
+
+# 4. Robustness
+- **JSON Sanitization:** Strip Markdown code blocks before parsing.
+- **Error Handling:** Graceful alerts for invalid API keys.
+- **Export:** `html2pdf.js` for high-quality PDF generation.
