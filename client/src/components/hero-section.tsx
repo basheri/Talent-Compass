@@ -1,15 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { ArrowRight, ArrowLeft, Compass, MessageCircle, FileText } from 'lucide-react';
-import { hasApiKey } from '@/lib/ai-service';
 
 interface HeroSectionProps {
   isRtl: boolean;
   onStart: () => void;
-  onOpenSettings: () => void;
 }
 
-export function HeroSection({ isRtl, onStart, onOpenSettings }: HeroSectionProps) {
-  const hasKey = hasApiKey();
+export function HeroSection({ isRtl, onStart }: HeroSectionProps) {
   const ArrowIcon = isRtl ? ArrowLeft : ArrowRight;
 
   const content = isRtl
@@ -19,7 +16,6 @@ export function HeroSection({ isRtl, onStart, onOpenSettings }: HeroSectionProps
         titleHighlight: 'اكتشف شغفك ومواهبك',
         description: 'حياك الله! أنا مسبار، مستشارك المهني بالذكاء الاصطناعي. راح نتكلم سوا عشان نكتشف نقاط قوتك وشغفك، وبعدين نطلع لك تقرير مهني احترافي.',
         ctaStart: 'ابدأ الرحلة',
-        ctaSettings: 'أدخل مفتاح API أولاً',
         features: [
           { icon: MessageCircle, text: 'محادثة ذكية' },
           { icon: Compass, text: 'اكتشاف الشغف' },
@@ -32,7 +28,6 @@ export function HeroSection({ isRtl, onStart, onOpenSettings }: HeroSectionProps
         titleHighlight: 'Discover Your Passion & Strengths',
         description: "Hello! I'm Misbar, your AI career coach. Let's have a conversation to discover your strengths and passion, then I'll generate a professional career report for you.",
         ctaStart: 'Start Journey',
-        ctaSettings: 'Enter API Key First',
         features: [
           { icon: MessageCircle, text: 'Smart Conversation' },
           { icon: Compass, text: 'Passion Discovery' },
@@ -66,27 +61,15 @@ export function HeroSection({ isRtl, onStart, onOpenSettings }: HeroSectionProps
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          {hasKey ? (
-            <Button
-              size="lg"
-              onClick={onStart}
-              className="text-base px-8"
-              data-testid="button-start-journey"
-            >
-              {content.ctaStart}
-              <ArrowIcon className="h-5 w-5 ms-2" />
-            </Button>
-          ) : (
-            <Button
-              size="lg"
-              onClick={onOpenSettings}
-              variant="outline"
-              className="text-base px-8"
-              data-testid="button-open-settings"
-            >
-              {content.ctaSettings}
-            </Button>
-          )}
+          <Button
+            size="lg"
+            onClick={onStart}
+            className="text-base px-8"
+            data-testid="button-start-journey"
+          >
+            {content.ctaStart}
+            <ArrowIcon className="h-5 w-5 ms-2" />
+          </Button>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-6 pt-8">

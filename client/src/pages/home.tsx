@@ -3,10 +3,8 @@ import { Header } from '@/components/header';
 import { HeroSection } from '@/components/hero-section';
 import { Conversation } from '@/components/conversation';
 import { ResultsDisplay } from '@/components/results-display';
-import { SettingsModal } from '@/components/settings-modal';
 import type { AppState, Message, MisbarResult } from '@/lib/types';
 import { STORAGE_KEYS } from '@/lib/types';
-import { hasApiKey, getProvider } from '@/lib/ai-service';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
@@ -19,8 +17,6 @@ export default function Home() {
     isRtl: true,
     language: 'ar',
   });
-  
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     const savedLanguage = localStorage.getItem(STORAGE_KEYS.LANGUAGE) as 'en' | 'ar' | null;
@@ -46,18 +42,6 @@ export default function Home() {
   };
 
   const handleStartJourney = () => {
-    if (!hasApiKey()) {
-      setSettingsOpen(true);
-      toast({
-        title: state.isRtl ? 'مفتاح API مطلوب' : 'API Key Required',
-        description: state.isRtl 
-          ? 'يرجى إدخال مفتاح API للمتابعة' 
-          : 'Please enter your API key to continue',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
     const initialGreeting = state.isRtl
       ? 'حياك الله! أنا مسبار، مستشارك المهني. خلنا نتعرف عليك أكثر عشان نكتشف نقاط قوتك وشغفك. بداية، قولي عن نفسك شوي، وش اللي تحب تسويه بوقت فراغك؟'
       : "Hello! I'm Misbar, your career coach. Let's get to know you better to discover your strengths and passion. To start, tell me a bit about yourself - what do you enjoy doing in your free time?";
@@ -93,10 +77,6 @@ export default function Home() {
       description: errorMessage,
       variant: 'destructive',
     });
-    
-    if (errorMessage.includes('API') || errorMessage.includes('key') || errorMessage.includes('مفتاح')) {
-      setSettingsOpen(true);
-    }
   };
 
   const handleRestart = () => {
@@ -121,7 +101,6 @@ export default function Home() {
           <HeroSection
             isRtl={state.isRtl}
             onStart={handleStartJourney}
-            onOpenSettings={() => setSettingsOpen(true)}
           />
         )}
 
@@ -154,17 +133,11 @@ export default function Home() {
           </p>
           <p data-testid="text-powered-by">
             {state.isRtl
-              ? `مدعوم بتقنية ${getProvider() === 'gemini' ? 'Google Gemini' : 'OpenAI'}`
-              : `Powered by ${getProvider() === 'gemini' ? 'Google Gemini' : 'OpenAI'}`}
+              ? 'مدعوم بتقنية Google Gemini'
+              : 'Powered by Google Gemini'}
           </p>
         </div>
       </footer>
-
-      <SettingsModal
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        isRtl={state.isRtl}
-      />
     </div>
   );
 }

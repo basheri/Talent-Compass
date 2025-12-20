@@ -1,5 +1,3 @@
-export type AIProvider = 'openai' | 'gemini';
-
 export interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -25,9 +23,6 @@ export interface AppState {
 }
 
 export const STORAGE_KEYS = {
-  OPENAI_API_KEY: 'misbar_openai_api_key',
-  GEMINI_API_KEY: 'misbar_gemini_api_key',
-  AI_PROVIDER: 'misbar_ai_provider',
   THEME: 'misbar_theme',
   LANGUAGE: 'misbar_language',
 } as const;
