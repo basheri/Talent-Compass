@@ -4,7 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Loader2, Bot, User } from 'lucide-react';
-import type { Message, MisbarResult } from '@/lib/types';
+import type { Message, OPAResult } from '@/lib/types';
 import { tryParseResult } from '@/lib/types';
 import { sendMessage } from '@/lib/ai-service';
 
@@ -13,7 +13,7 @@ interface ConversationProps {
   messages: Message[];
   language: 'en' | 'ar';
   onAddMessage: (message: Message) => void;
-  onComplete: (result: MisbarResult) => void;
+  onComplete: (result: OPAResult) => void;
   onApiError: (error: string) => void;
 }
 
@@ -86,13 +86,13 @@ export function Conversation({
 
   const labels = isRtl
     ? {
-        title: 'محادثة مع سند',
+        title: 'محادثة مع مهندس الحياة',
         placeholder: 'اكتب رسالتك هنا...',
         send: 'إرسال',
         thinking: 'جاري التفكير...',
       }
     : {
-        title: 'Chat with Sanad',
+        title: 'Chat with Life Architect',
         placeholder: 'Type your message here...',
         send: 'Send',
         thinking: 'Thinking...',

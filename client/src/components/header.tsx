@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Moon, Sun, Languages, Compass } from 'lucide-react';
+import { Moon, Sun, Languages, Zap } from 'lucide-react';
 import { useTheme } from './theme-provider';
 
 interface HeaderProps {
@@ -11,8 +11,8 @@ export function Header({ isRtl, onToggleLanguage }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
 
   const labels = isRtl
-    ? { title: 'سند', subtitle: 'اكتشاف المهنة' }
-    : { title: 'Sanad', subtitle: 'Career Discovery' };
+    ? { title: 'OPA', subtitle: 'مهندس الحياة' }
+    : { title: 'OPA', subtitle: 'Life Architect' };
 
   return (
     <header 
@@ -22,7 +22,7 @@ export function Header({ isRtl, onToggleLanguage }: HeaderProps) {
       <div className="max-w-6xl mx-auto h-full flex items-center justify-between gap-4 px-4 md:px-6">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
-            <Compass className="h-5 w-5 text-primary-foreground" />
+            <Zap className="h-5 w-5 text-primary-foreground" />
           </div>
           <div className="flex flex-col">
             <span className="font-semibold text-sm md:text-base leading-tight" data-testid="text-app-title">

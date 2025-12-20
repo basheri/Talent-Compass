@@ -5,27 +5,32 @@ export interface Message {
   timestamp: Date;
 }
 
-export interface MisbarResult {
+export interface OPAResult {
   status: 'complete';
-  strengths: string[];
-  passion: string;
-  career_paths: string[];
+  outcome: string;
+  purpose: string;
+  role: string;
+  musts: string[];
+  shoulds: string[];
+  time_zone: string;
   reliability_score: number;
 }
+
+export type MisbarResult = OPAResult;
 
 export interface AppState {
   step: 'welcome' | 'conversation' | 'results';
   messages: Message[];
-  result: MisbarResult | null;
+  result: OPAResult | null;
   isLoading: boolean;
   isRtl: boolean;
   language: 'en' | 'ar';
 }
 
 export const STORAGE_KEYS = {
-  THEME: 'sanad_theme',
-  LANGUAGE: 'sanad_language',
-  API_KEY: 'sanad_api_key',
+  THEME: 'opa_theme',
+  LANGUAGE: 'opa_language',
+  API_KEY: 'opa_api_key',
 } as const;
 
 export function sanitizeJsonResponse(content: string): string {
@@ -36,7 +41,7 @@ export function sanitizeJsonResponse(content: string): string {
   return cleaned.trim();
 }
 
-export function tryParseResult(content: string): MisbarResult | null {
+export function tryParseResult(content: string): OPAResult | null {
   try {
     const sanitized = sanitizeJsonResponse(content);
     const jsonMatch = sanitized.match(/\{[\s\S]*\}/);
@@ -45,12 +50,17 @@ export function tryParseResult(content: string): MisbarResult | null {
     const parsed = JSON.parse(jsonMatch[0]);
     if (
       parsed.status === 'complete' &&
-      Array.isArray(parsed.strengths) &&
-      typeof parsed.passion === 'string' &&
-      Array.isArray(parsed.career_paths) &&
+      typeof parsed.outcome === 'string' &&
+      typeof parsed.purpose === 'string' &&
+      typeof parsed.role === 'string' &&
+      Array.isArray(parsed.musts) &&
+      Array.isArray(parsed.shoulds) &&
       typeof parsed.reliability_score === 'number'
     ) {
-      return parsed as MisbarResult;
+      return {
+        ...parsed,
+        time_zone: parsed.time_zone || 'The Zone',
+      } as OPAResult;
     }
     return null;
   } catch {

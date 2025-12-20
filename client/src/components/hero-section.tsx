@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ArrowLeft, Compass, MessageCircle, FileText } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Zap, Target, FileText } from 'lucide-react';
 
 interface HeroSectionProps {
   isRtl: boolean;
@@ -11,27 +11,27 @@ export function HeroSection({ isRtl, onStart }: HeroSectionProps) {
 
   const content = isRtl
     ? {
-        badge: 'مستشارك المهني السعودي',
-        title: 'سند',
-        titleHighlight: 'اكتشف شغفك ومواهبك',
-        description: 'حياك الله! أنا سند، مستشارك المهني بالذكاء الاصطناعي. راح نتكلم سوا عشان نكتشف نقاط قوتك وشغفك، وبعدين نطلع لك تقرير مهني احترافي.',
-        ctaStart: 'ابدأ الرحلة',
+        badge: 'مهندس الحياة - منهجية أنتوني روبنز',
+        title: 'OPA',
+        titleHighlight: 'حياتك... ليست قائمة مهام',
+        description: 'مرحبا! أنا مهندس حياتك OPA. سنحول أفكارك المتناثرة إلى خطة حياة واضحة باستخدام منهجية O.P.A. - النتيجة، الغرض، الإجراء. هل أنت مستعد لتحويل حياتك؟',
+        ctaStart: 'ابدأ الآن',
         features: [
-          { icon: MessageCircle, text: 'محادثة ذكية' },
-          { icon: Compass, text: 'اكتشاف الشغف' },
-          { icon: FileText, text: 'تقرير PDF' },
+          { icon: Target, text: 'نتائج واضحة' },
+          { icon: Zap, text: 'طاقة وتحفيز' },
+          { icon: FileText, text: 'خطة عمل PDF' },
         ],
       }
     : {
-        badge: 'Your AI Career Coach',
-        title: 'Sanad',
-        titleHighlight: 'Discover Your Passion & Strengths',
-        description: "Hello! I'm Sanad, your AI career coach. Let's have a conversation to discover your strengths and passion, then I'll generate a professional career report for you.",
-        ctaStart: 'Start Journey',
+        badge: 'Life Architect - Tony Robbins Methodology',
+        title: 'OPA',
+        titleHighlight: 'Your Life... Not a To-Do List',
+        description: "Hello! I'm your OPA Life Architect. We'll transform your scattered ideas into a clear life plan using the O.P.A. methodology - Outcome, Purpose, Action. Ready to transform your life?",
+        ctaStart: 'Start Now',
         features: [
-          { icon: MessageCircle, text: 'Smart Conversation' },
-          { icon: Compass, text: 'Passion Discovery' },
-          { icon: FileText, text: 'PDF Report' },
+          { icon: Target, text: 'Clear Outcomes' },
+          { icon: Zap, text: 'Energy & Drive' },
+          { icon: FileText, text: 'Action Plan PDF' },
         ],
       };
 
@@ -42,7 +42,7 @@ export function HeroSection({ isRtl, onStart }: HeroSectionProps) {
     >
       <div className="max-w-4xl mx-auto text-center space-y-8">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
-          <Compass className="h-4 w-4" />
+          <Zap className="h-4 w-4" />
           {content.badge}
         </div>
 

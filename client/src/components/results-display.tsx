@@ -6,17 +6,19 @@ import { Progress } from '@/components/ui/progress';
 import { 
   FileDown, 
   Loader2, 
-  Star, 
-  Heart, 
-  Briefcase,
+  Target,
+  Heart,
+  Zap,
+  CheckCircle2,
+  Circle,
   RefreshCw,
-  Target
+  Clock
 } from 'lucide-react';
-import type { MisbarResult } from '@/lib/types';
+import type { OPAResult } from '@/lib/types';
 
 interface ResultsDisplayProps {
   isRtl: boolean;
-  result: MisbarResult;
+  result: OPAResult;
   onRestart: () => void;
 }
 
@@ -26,27 +28,33 @@ export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps
 
   const labels = isRtl
     ? {
-        title: 'تقريرك المهني',
-        subtitle: 'نتائج تحليل سند',
+        title: 'خطة حياتك OPA',
+        subtitle: 'نتائج مهندس الحياة',
         exportPdf: 'تحميل PDF',
-        startNew: 'بدء محادثة جديدة',
-        strengths: 'نقاط القوة',
-        passion: 'الشغف',
-        careerPaths: 'المسارات المهنية المقترحة',
-        reliabilityScore: 'نسبة الموثوقية',
-        preparedBy: 'تم إعداد هذا التقرير بواسطة سند',
+        startNew: 'بدء جلسة جديدة',
+        outcome: 'النتيجة المطلوبة',
+        purpose: 'الغرض العاطفي',
+        role: 'هويتك التمكينية',
+        musts: 'يجب - MUSTS (أولوية قصوى)',
+        shoulds: 'ينبغي - SHOULDS',
+        timeZone: 'منطقة الوقت',
+        reliabilityScore: 'نسبة التركيز',
+        preparedBy: 'تم إعداد هذا بواسطة OPA Life Architect',
         generatedOn: 'تاريخ الإعداد',
       }
     : {
-        title: 'Your Career Report',
-        subtitle: 'Sanad Analysis Results',
+        title: 'Your OPA Life Plan',
+        subtitle: 'Life Architect Results',
         exportPdf: 'Download PDF',
-        startNew: 'Start New Journey',
-        strengths: 'Your Strengths',
-        passion: 'Your Passion',
-        careerPaths: 'Suggested Career Paths',
-        reliabilityScore: 'Reliability Score',
-        preparedBy: 'This report was prepared by Sanad',
+        startNew: 'Start New Session',
+        outcome: 'Your Outcome',
+        purpose: 'Your Purpose (The Juice)',
+        role: 'Your Empowering Identity',
+        musts: 'MUSTS (High Priority)',
+        shoulds: 'SHOULDS',
+        timeZone: 'Time Zone',
+        reliabilityScore: 'Focus Score',
+        preparedBy: 'Prepared by OPA Life Architect',
         generatedOn: 'Generated on',
       };
 
@@ -65,9 +73,9 @@ export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps
       
       const element = reportRef.current;
       const opt = {
-        margin: [10, 10, 10, 10],
-        filename: `sanad-career-report.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
+        margin: [10, 10, 10, 10] as [number, number, number, number],
+        filename: `opa-life-plan.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
         html2canvas: { 
           scale: 2, 
           useCORS: true,
@@ -76,7 +84,7 @@ export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps
         jsPDF: { 
           unit: 'mm', 
           format: 'a4', 
-          orientation: 'portrait' 
+          orientation: 'portrait' as const
         },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
       };
@@ -150,68 +158,116 @@ export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps
             <Progress value={result.reliability_score} className="w-32 h-3" />
           </div>
 
-          <Card data-testid="card-passion">
+          <Card data-testid="card-outcome">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Heart className="h-5 w-5 text-primary" />
-                {labels.passion}
+                <Target className="h-5 w-5 text-primary" />
+                {labels.outcome}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground leading-relaxed" data-testid="text-passion">
-                {result.passion}
+              <p className="text-lg font-medium" data-testid="text-outcome">
+                {result.outcome}
               </p>
             </CardContent>
           </Card>
 
-          <Card data-testid="card-strengths">
+          <Card data-testid="card-purpose">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Star className="h-5 w-5 text-primary" />
-                {labels.strengths}
+                <Heart className="h-5 w-5 text-primary" />
+                {labels.purpose}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {result.strengths.map((strength, index) => (
-                  <Badge key={index} variant="secondary" className="text-sm py-1 px-3" data-testid={`badge-strength-${index}`}>
-                    {strength}
-                  </Badge>
-                ))}
-              </div>
+              <p className="text-muted-foreground leading-relaxed" data-testid="text-purpose">
+                {result.purpose}
+              </p>
             </CardContent>
           </Card>
 
-          <Card data-testid="card-career-paths">
+          <Card data-testid="card-role">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <Briefcase className="h-5 w-5 text-primary" />
-                {labels.careerPaths}
+                <Zap className="h-5 w-5 text-primary" />
+                {labels.role}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Badge variant="default" className="text-base py-2 px-4" data-testid="badge-role">
+                {result.role}
+              </Badge>
+            </CardContent>
+          </Card>
+
+          <Card data-testid="card-musts">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+                {labels.musts}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {result.career_paths.map((path, index) => (
+              {result.musts.map((action, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-3 p-4 rounded-lg bg-muted/50"
-                  data-testid={`career-path-${index}`}
+                  className="flex items-center gap-3 p-4 rounded-lg bg-primary/10 border border-primary/20"
+                  data-testid={`must-action-${index}`}
                 >
-                  <div className="flex-shrink-0 h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Target className="h-5 w-5 text-primary" />
+                  <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+                    <span className="text-primary-foreground font-bold text-sm">{index + 1}</span>
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-medium" data-testid={`text-career-path-${index}`}>{path}</h3>
+                    <p className="font-medium" data-testid={`text-must-${index}`}>{action}</p>
                   </div>
-                  <Badge variant="outline" className="text-xs">
-                    {index + 1}
-                  </Badge>
                 </div>
               ))}
             </CardContent>
           </Card>
 
+          {result.shoulds && result.shoulds.length > 0 && (
+            <Card data-testid="card-shoulds">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Circle className="h-5 w-5 text-muted-foreground" />
+                  {labels.shoulds}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {result.shoulds.map((action, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
+                    data-testid={`should-action-${index}`}
+                  >
+                    <Circle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <p className="text-muted-foreground" data-testid={`text-should-${index}`}>{action}</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          <Card data-testid="card-time-zone">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Clock className="h-5 w-5 text-primary" />
+                {labels.timeZone}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Badge 
+                variant={result.time_zone?.toLowerCase().includes('zone') ? 'default' : 'secondary'} 
+                className="text-sm py-1 px-3"
+                data-testid="badge-time-zone"
+              >
+                {result.time_zone || 'The Zone'}
+              </Badge>
+            </CardContent>
+          </Card>
+
           <div className="text-center pt-6 border-t text-xs text-muted-foreground print:block">
-            <p>سند - Sanad Career Discovery</p>
+            <p>OPA Life Architect - Time of Your Life</p>
             <p>{currentDate}</p>
           </div>
         </div>

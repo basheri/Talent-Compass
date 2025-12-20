@@ -3,7 +3,7 @@ import { Header } from '@/components/header';
 import { HeroSection } from '@/components/hero-section';
 import { Conversation } from '@/components/conversation';
 import { ResultsDisplay } from '@/components/results-display';
-import type { AppState, Message, MisbarResult } from '@/lib/types';
+import type { AppState, Message, OPAResult } from '@/lib/types';
 import { STORAGE_KEYS } from '@/lib/types';
 import { clearChatSession } from '@/lib/ai-service';
 import { useToast } from '@/hooks/use-toast';
@@ -44,8 +44,8 @@ export default function Home() {
 
   const handleStartJourney = () => {
     const initialGreeting = state.isRtl
-      ? 'حياك الله! أنا سند، مستشارك المهني. خلنا نتعرف عليك أكثر عشان نكتشف نقاط قوتك وشغفك. بداية، من الشخصيات اللي كنت تعجب فيها وأنت صغير؟ ممكن تكون شخصية حقيقية أو خيالية.'
-      : "Hello! I'm Sanad, your career coach. Let's get to know you better to discover your strengths and passion. To start, who were the people you admired when you were growing up? They could be real or fictional.";
+      ? 'مرحبا! أنا مهندس حياتك OPA. أنا هنا لأساعدك تحول أفكارك ومهامك إلى خطة حياة واضحة. لنبدأ... ما هي النتيجة المحددة التي تريد تحقيقها الآن؟ لا تعطيني قائمة مهام - أخبرني عن النتيجة النهائية التي تسعى لها.'
+      : "Hello! I'm your OPA Life Architect. I'm here to help you transform your scattered ideas into a clear life plan. Let's begin... What is the specific OUTCOME you want to achieve right now? Don't give me a to-do list - tell me about the end result you're after.";
 
     const initialMessage: Message = {
       id: crypto.randomUUID(),
@@ -65,7 +65,7 @@ export default function Home() {
     }));
   };
 
-  const handleComplete = (result: MisbarResult) => {
+  const handleComplete = (result: OPAResult) => {
     setState(prev => ({
       ...prev,
       result,
