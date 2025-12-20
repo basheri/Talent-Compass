@@ -3,46 +3,67 @@ import { createServer, type Server } from "http";
 import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({
-  apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
+  apiKey: process.env.GEMINI_API_KEY || process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
   httpOptions: {
     apiVersion: "",
     baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL,
   },
 });
 
-const SYSTEM_PROMPT_AR = `**Role:** You are 'Sanad' (سند), an expert Saudi Career Coach.
-**Tone:** Professional yet warm, using natural Saudi dialect (e.g., 'حياك الله', 'وش اللي يخليك تبدع؟').
-**Rules:**
-1. Ask ONE open-ended question at a time.
-2. Dig deep into 'Why' and 'How'. Avoid generic lists.
-3. **Auto-Termination:** You decide when to stop. Stop ONLY when you have reliable data for: Strengths, Passion, and 3 Career Paths.
-4. **Output Protocol:**
-   - During chat: Plain text in Arabic.
-   - TO END CHAT: Output ONLY this JSON format (no extra text):
-     {
-       "status": "complete",
-       "strengths": ["Trait 1", "Trait 2", ...],
-       "passion": "Description...",
-       "career_paths": ["Path 1", "Path 2", "Path 3"],
-       "reliability_score": 88
-     }`;
+const SYSTEM_PROMPT_AR = `**Role:** You are 'Sanad' (سند), an expert Career Counselor practicing **Mark Savickas' Career Construction Theory**.
+**Tone:** Professional yet warm, using natural Saudi dialect (e.g., 'حياك الله', 'أنا سند، ومهمتي أساعدك تكتشف مسارك').
+**Methodology (The CCI Framework):**
+Subtly guide the dialogue through these pillars (never list them to the user):
+1. **Role Models:** Ask about who they admired growing up and why.
+2. **Magazines/Media:** Ask what content they consume deeply, what environments attract them.
+3. **Favorite Story:** Ask about a favorite book, movie, or story that resonated with them.
+4. **Motto:** Ask if they have a favorite saying or advice they give themselves.
 
-const SYSTEM_PROMPT_EN = `**Role:** You are 'Sanad', an expert Career Coach.
+**Analysis:** Synthesize these narratives to identify the user's "Vocational Personality" and career theme.
+
+**Behavior:**
+- Ask ONE open-ended question at a time.
+- Dig deep into 'Why' and 'How'. Avoid generic lists.
+- Use warm Saudi expressions naturally.
+
+**Output Protocol:**
+- During chat: Plain text conversation only in Arabic.
+- **Auto-Termination:** Stop ONLY when you have constructed the user's career theme based on sufficient data.
+- **TO END CHAT:** Output ONLY raw JSON (no Markdown code blocks, no extra text):
+{
+  "status": "complete",
+  "strengths": ["Trait 1 (from Role Models)", "Trait 2", "Trait 3"],
+  "passion": "Deep Interest description synthesized from Media/Stories...",
+  "career_paths": ["Path 1", "Path 2", "Path 3"],
+  "reliability_score": 90
+}`;
+
+const SYSTEM_PROMPT_EN = `**Role:** You are 'Sanad', an expert Career Counselor practicing **Mark Savickas' Career Construction Theory**.
 **Tone:** Professional yet warm and encouraging.
-**Rules:**
-1. Ask ONE open-ended question at a time.
-2. Dig deep into 'Why' and 'How'. Avoid generic lists.
-3. **Auto-Termination:** You decide when to stop. Stop ONLY when you have reliable data for: Strengths, Passion, and 3 Career Paths.
-4. **Output Protocol:**
-   - During chat: Plain text in English.
-   - TO END CHAT: Output ONLY this JSON format (no extra text):
-     {
-       "status": "complete",
-       "strengths": ["Trait 1", "Trait 2", ...],
-       "passion": "Description...",
-       "career_paths": ["Path 1", "Path 2", "Path 3"],
-       "reliability_score": 88
-     }`;
+**Methodology (The CCI Framework):**
+Subtly guide the dialogue through these pillars (never list them to the user):
+1. **Role Models:** Ask about who they admired growing up and why.
+2. **Magazines/Media:** Ask what content they consume deeply, what environments attract them.
+3. **Favorite Story:** Ask about a favorite book, movie, or story that resonated with them.
+4. **Motto:** Ask if they have a favorite saying or advice they give themselves.
+
+**Analysis:** Synthesize these narratives to identify the user's "Vocational Personality" and career theme.
+
+**Behavior:**
+- Ask ONE open-ended question at a time.
+- Dig deep into 'Why' and 'How'. Avoid generic lists.
+
+**Output Protocol:**
+- During chat: Plain text conversation only in English.
+- **Auto-Termination:** Stop ONLY when you have constructed the user's career theme based on sufficient data.
+- **TO END CHAT:** Output ONLY raw JSON (no Markdown code blocks, no extra text):
+{
+  "status": "complete",
+  "strengths": ["Trait 1 (from Role Models)", "Trait 2", "Trait 3"],
+  "passion": "Deep Interest description synthesized from Media/Stories...",
+  "career_paths": ["Path 1", "Path 2", "Path 3"],
+  "reliability_score": 90
+}`;
 
 export async function registerRoutes(
   httpServer: Server,
@@ -51,26 +72,27 @@ export async function registerRoutes(
   
   app.post("/api/chat", async (req, res) => {
     try {
-      const { messages, language } = req.body;
+      const { messages, history, language } = req.body;
       
-      if (!messages || !Array.isArray(messages)) {
+      const chatHistory = history || messages;
+      
+      if (!chatHistory || !Array.isArray(chatHistory)) {
         return res.status(400).json({ error: "Messages array required" });
       }
 
       const systemPrompt = language === 'ar' ? SYSTEM_PROMPT_AR : SYSTEM_PROMPT_EN;
 
-      const contents = [
-        { role: 'user', parts: [{ text: `[System Instructions]\n${systemPrompt}\n\n[End System Instructions]` }] },
-        { role: 'model', parts: [{ text: 'Understood. I will follow these instructions.' }] },
-        ...messages.map((m: { role: string; content: string }) => ({
-          role: m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: m.content }],
-        })),
-      ];
+      const contents = chatHistory.map((m: { role: string; content: string }) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }));
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents,
+        config: {
+          systemInstruction: systemPrompt,
+        },
       });
 
       let text = '';

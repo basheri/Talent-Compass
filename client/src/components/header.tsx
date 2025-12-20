@@ -1,14 +1,13 @@
 import { Button } from '@/components/ui/button';
-import { Moon, Sun, Languages, Compass, Settings } from 'lucide-react';
+import { Moon, Sun, Languages, Compass } from 'lucide-react';
 import { useTheme } from './theme-provider';
 
 interface HeaderProps {
   isRtl: boolean;
   onToggleLanguage: () => void;
-  onOpenSettings?: () => void;
 }
 
-export function Header({ isRtl, onToggleLanguage, onOpenSettings }: HeaderProps) {
+export function Header({ isRtl, onToggleLanguage }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
 
   const labels = isRtl
@@ -36,18 +35,6 @@ export function Header({ isRtl, onToggleLanguage, onOpenSettings }: HeaderProps)
         </div>
 
         <div className="flex items-center gap-2">
-          {onOpenSettings && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onOpenSettings}
-              title={isRtl ? 'الإعدادات' : 'Settings'}
-              data-testid="button-open-settings"
-            >
-              <Settings className="h-5 w-5" />
-            </Button>
-          )}
-          
           <Button
             variant="ghost"
             size="icon"
