@@ -43,15 +43,22 @@ A chat-based AI life coaching tool based on Anthony Robbins' "Time of Your Life"
 
 ### Key Files
 - `client/src/pages/home.tsx` - Main application page with state management
+- `client/src/pages/admin.tsx` - Admin dashboard with analytics and prompt editor
 - `client/src/lib/types.ts` - TypeScript types (OPAResult) and JSON sanitization utilities
-- `client/src/lib/ai-service.ts` - Frontend service that calls backend API
-- `server/routes.ts` - Backend API route for Gemini chat with O.P.A. system prompts
+- `client/src/lib/ai-service.ts` - Frontend service that calls backend API with session tracking
+- `client/src/lib/session.ts` - Session ID management for analytics
+- `server/routes.ts` - Backend API routes for chat, auth, and admin
+- `server/storage.ts` - Database storage for prompts, sessions, and analytics
+- `shared/schema.ts` - Drizzle schema for system_prompts, chat_sessions, chat_messages
 - `client/src/components/conversation.tsx` - Chat interface with auto-completion detection
-- `client/src/components/results-display.tsx` - OPA Plan view with PDF export (Outcome, Purpose, Role, MUSTs, SHOULDs)
+- `client/src/components/results-display.tsx` - OPA Plan view with PDF export
 - `client/src/index.css` - Sage Green theme colors
 
 ### Environment Variables
 - **GEMINI_API_KEY:** Google Gemini API key (stored as secret)
+- **DATABASE_URL:** PostgreSQL connection string (auto-configured)
+- **SESSION_SECRET:** Session encryption key (auto-configured)
+- **ADMIN_EMAIL:** Admin email for dashboard access (default: m.basheri@gmail.com)
 
 ### Features
 - **Secure Backend:** API key stored server-side as secret
@@ -63,6 +70,10 @@ A chat-based AI life coaching tool based on Anthony Robbins' "Time of Your Life"
 - **Error Handling:** Toast notifications for API errors
 - **Theme Support:** Light/Dark mode toggle
 - **Bilingual:** Arabic (default) and English with RTL/LTR support
+- **Admin Dashboard:** `/admin` route with analytics and prompt editor
+- **Session Analytics:** Tracks unique users, total messages, active users (24h)
+- **Dynamic System Prompt:** Editable from admin dashboard, stored in PostgreSQL
+- **Replit Auth:** OAuth login for admin access
 
 ## External Dependencies
 

@@ -1,4 +1,5 @@
 import type { Message } from './types';
+import { getSessionId } from './session';
 
 export function hasApiKey(): boolean {
   return true;
@@ -11,6 +12,8 @@ export async function sendMessage(
   messages: Message[],
   language: 'en' | 'ar'
 ): Promise<string> {
+  const sessionId = getSessionId();
+  
   const response = await fetch('/api/chat', {
     method: 'POST',
     headers: {
@@ -20,6 +23,7 @@ export async function sendMessage(
       messages,
       history: messages,
       language,
+      sessionId,
     }),
   });
 

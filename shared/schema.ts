@@ -1,18 +1,57 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, index, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
+// Re-export auth models
+export * from "./models/auth";
+
+// System Prompts table - stores the AI prompts that can be edited by admin
+export const systemPrompts = pgTable("system_prompts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  language: varchar("language", { length: 10 }).notNull(), // 'ar' or 'en'
+  content: text("content").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  updatedBy: varchar("updated_by"), // user id who last updated
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const insertSystemPromptSchema = createInsertSchema(systemPrompts).omit({
+  id: true,
+  updatedAt: true,
 });
+export type InsertSystemPrompt = z.infer<typeof insertSystemPromptSchema>;
+export type SystemPrompt = typeof systemPrompts.$inferSelect;
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+// Chat Sessions table - tracks anonymous user sessions
+export const chatSessions = pgTable("chat_sessions", {
+  id: varchar("id").primaryKey(), // UUID from localStorage
+  createdAt: timestamp("created_at").defaultNow(),
+  lastActiveAt: timestamp("last_active_at").defaultNow(),
+}, (table) => [
+  index("idx_chat_sessions_last_active").on(table.lastActiveAt),
+]);
+
+export const insertChatSessionSchema = createInsertSchema(chatSessions).omit({
+  createdAt: true,
+  lastActiveAt: true,
+});
+export type InsertChatSession = z.infer<typeof insertChatSessionSchema>;
+export type ChatSession = typeof chatSessions.$inferSelect;
+
+// Chat Messages table - logs all messages for analytics
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull(),
+  role: varchar("role", { length: 20 }).notNull(), // 'user' or 'assistant'
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_chat_messages_session").on(table.sessionId),
+  index("idx_chat_messages_created").on(table.createdAt),
+]);
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;

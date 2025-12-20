@@ -1,6 +1,8 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
+import type { Server } from "http";
 import { GoogleGenAI } from "@google/genai";
+import { setupAuth, isAuthenticated, registerAuthRoutes } from "./replit_integrations/auth";
+import { storage } from "./storage";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
@@ -10,7 +12,9 @@ const ai = new GoogleGenAI({
   },
 });
 
-const SYSTEM_PROMPT_AR = `# الدور والشخصية
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "m.basheri@gmail.com";
+
+const DEFAULT_SYSTEM_PROMPT_AR = `# الدور والشخصية
 أنت "سند"، مهندس الحياة، مدرب ذكاء اصطناعي خبير يعتمد على منهجية أنتوني روبنز "وقت حياتك". ترفض "إدارة الوقت" التقليدية (قوائم المهام) وتطبق "إدارة الحياة" (التركيز على النتائج والمشاعر). أسلوبك حماسي، تحدي، وتمكيني.
 
 # المنهجية الأساسية: O.P.A. (المنطق)
@@ -55,7 +59,7 @@ const SYSTEM_PROMPT_AR = `# الدور والشخصية
   "reliability_score": 90
 }`;
 
-const SYSTEM_PROMPT_EN = `# Role & Persona
+const DEFAULT_SYSTEM_PROMPT_EN = `# Role & Persona
 You are "Sanad" (سند - meaning support in Arabic), a Life Architect and expert AI coach based strictly on Anthony Robbins' "Time of Your Life" methodology. You reject traditional "Time Management" (focusing on to-do lists) and strictly enforce "Life Management" (focusing on outcomes and emotions). Your tone is energetic, challenging, and empowering.
 
 # Core Methodology: O.P.A. (The Logic)
@@ -102,14 +106,24 @@ Never accept a list of tasks ("To-Dos") from the user. You must process every re
   "reliability_score": 90
 }`;
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
+// Middleware to check if user is admin
+const isAdmin = (req: any, res: any, next: any) => {
+  const user = req.user as any;
+  if (!user?.claims?.email || user.claims.email !== ADMIN_EMAIL) {
+    return res.status(403).json({ error: "Forbidden: Admin access only" });
+  }
+  next();
+};
+
+export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
+  // Setup authentication
+  await setupAuth(app);
+  registerAuthRoutes(app);
   
+  // Public chat endpoint with analytics logging
   app.post("/api/chat", async (req, res) => {
     try {
-      const { messages, history, language } = req.body;
+      const { messages, history, language, sessionId } = req.body;
       
       const chatHistory = history || messages;
       
@@ -117,7 +131,25 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Messages array required" });
       }
 
-      const systemPrompt = language === 'ar' ? SYSTEM_PROMPT_AR : SYSTEM_PROMPT_EN;
+      // Log session and message to database for analytics
+      if (sessionId) {
+        try {
+          await storage.getOrCreateSession(sessionId);
+          await storage.updateSessionActivity(sessionId);
+          await storage.logMessage(sessionId, 'user');
+        } catch (err) {
+          console.error("Analytics logging error:", err);
+        }
+      }
+
+      // Get system prompt from database or use default
+      let systemPrompt: string;
+      try {
+        const dbPrompt = await storage.getSystemPrompt(language === 'ar' ? 'ar' : 'en');
+        systemPrompt = dbPrompt?.content || (language === 'ar' ? DEFAULT_SYSTEM_PROMPT_AR : DEFAULT_SYSTEM_PROMPT_EN);
+      } catch {
+        systemPrompt = language === 'ar' ? DEFAULT_SYSTEM_PROMPT_AR : DEFAULT_SYSTEM_PROMPT_EN;
+      }
 
       const contents = chatHistory.map((m: { role: string; content: string }) => ({
         role: m.role === 'assistant' ? 'model' : 'user',
@@ -138,11 +170,86 @@ export async function registerRoutes(
       } else if (response.candidates?.[0]?.content?.parts?.[0]?.text) {
         text = response.candidates[0].content.parts[0].text;
       }
+
+      // Log assistant response
+      if (sessionId) {
+        try {
+          await storage.logMessage(sessionId, 'assistant');
+        } catch (err) {
+          console.error("Analytics logging error:", err);
+        }
+      }
+
       res.json({ content: text });
     } catch (error) {
       console.error("Chat error:", error);
       const message = error instanceof Error ? error.message : "Failed to get response";
       res.status(500).json({ error: message });
+    }
+  });
+
+  // Admin: Get analytics stats
+  app.get("/api/admin/stats", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const [uniqueUsers, totalMessages, activeUsers24h] = await Promise.all([
+        storage.getUniqueUsersCount(),
+        storage.getTotalMessagesCount(),
+        storage.getActiveUsers24h(),
+      ]);
+
+      res.json({
+        uniqueUsers,
+        totalMessages,
+        activeUsers24h,
+      });
+    } catch (error) {
+      console.error("Stats error:", error);
+      res.status(500).json({ error: "Failed to fetch stats" });
+    }
+  });
+
+  // Admin: Get system prompts
+  app.get("/api/admin/prompts", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const [arPrompt, enPrompt] = await Promise.all([
+        storage.getSystemPrompt('ar'),
+        storage.getSystemPrompt('en'),
+      ]);
+
+      res.json({
+        ar: arPrompt?.content || DEFAULT_SYSTEM_PROMPT_AR,
+        en: enPrompt?.content || DEFAULT_SYSTEM_PROMPT_EN,
+      });
+    } catch (error) {
+      console.error("Get prompts error:", error);
+      res.status(500).json({ error: "Failed to fetch prompts" });
+    }
+  });
+
+  // Admin: Update system prompt
+  app.post("/api/admin/prompts", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { language, content } = req.body;
+      const user = req.user as any;
+
+      if (!language || !content) {
+        return res.status(400).json({ error: "Language and content required" });
+      }
+
+      if (language !== 'ar' && language !== 'en') {
+        return res.status(400).json({ error: "Language must be 'ar' or 'en'" });
+      }
+
+      const prompt = await storage.upsertSystemPrompt({
+        language,
+        content,
+        updatedBy: user.claims.sub,
+      });
+
+      res.json({ success: true, prompt });
+    } catch (error) {
+      console.error("Update prompt error:", error);
+      res.status(500).json({ error: "Failed to update prompt" });
     }
   });
 
