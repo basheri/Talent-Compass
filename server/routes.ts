@@ -96,8 +96,8 @@ export async function registerRoutes(
       });
 
       let text = '';
-      if (response.text) {
-        text = typeof response.text === 'function' ? response.text() : response.text;
+      if (response.text !== undefined) {
+        text = response.text as string;
       } else if (response.candidates?.[0]?.content?.parts?.[0]?.text) {
         text = response.candidates[0].content.parts[0].text;
       }
