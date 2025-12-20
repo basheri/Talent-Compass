@@ -6,8 +6,8 @@ import type { OPAResult } from '@/lib/types';
 Font.register({
   family: 'Cairo',
   fonts: [
-    { src: '/fonts/Cairo-Regular.ttf', fontWeight: 'normal' },
-    { src: '/fonts/Cairo-Bold.ttf', fontWeight: 'bold' }
+    { src: 'https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkvangtZmpcWmhzfH5lWWgcQyyS4J0.ttf', fontWeight: 'normal' },
+    { src: 'https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkvangtZmpcWmhzfH5l92gcQyyS4J0.ttf', fontWeight: 'bold' }
   ]
 });
 
