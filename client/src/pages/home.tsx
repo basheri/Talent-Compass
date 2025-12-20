@@ -3,8 +3,10 @@ import { Header } from '@/components/header';
 import { HeroSection } from '@/components/hero-section';
 import { Conversation } from '@/components/conversation';
 import { ResultsDisplay } from '@/components/results-display';
+import { SettingsModal } from '@/components/settings-modal';
 import type { AppState, Message, MisbarResult } from '@/lib/types';
 import { STORAGE_KEYS } from '@/lib/types';
+import { hasApiKey, clearChatSession } from '@/lib/ai-service';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
@@ -17,6 +19,8 @@ export default function Home() {
     isRtl: true,
     language: 'ar',
   });
+  const [showSettings, setShowSettings] = useState(false);
+  const [apiKeyReady, setApiKeyReady] = useState(false);
 
   useEffect(() => {
     const savedLanguage = localStorage.getItem(STORAGE_KEYS.LANGUAGE) as 'en' | 'ar' | null;
@@ -27,6 +31,7 @@ export default function Home() {
         isRtl: savedLanguage === 'ar',
       }));
     }
+    setApiKeyReady(hasApiKey());
   }, []);
 
   const toggleLanguage = () => {
@@ -42,9 +47,14 @@ export default function Home() {
   };
 
   const handleStartJourney = () => {
+    if (!hasApiKey()) {
+      setShowSettings(true);
+      return;
+    }
+
     const initialGreeting = state.isRtl
-      ? 'حياك الله! أنا سند، مستشارك المهني. خلنا نتعرف عليك أكثر عشان نكتشف نقاط قوتك وشغفك. بداية، قولي عن نفسك شوي، وش اللي تحب تسويه بوقت فراغك؟'
-      : "Hello! I'm Sanad, your career coach. Let's get to know you better to discover your strengths and passion. To start, tell me a bit about yourself - what do you enjoy doing in your free time?";
+      ? 'حياك الله! أنا سند، مستشارك المهني. خلنا نتعرف عليك أكثر عشان نكتشف نقاط قوتك وشغفك. بداية، من الشخصيات اللي كنت تعجب فيها وأنت صغير؟ ممكن تكون شخصية حقيقية أو خيالية.'
+      : "Hello! I'm Sanad, your career coach. Let's get to know you better to discover your strengths and passion. To start, who were the people you admired when you were growing up? They could be real or fictional.";
 
     const initialMessage: Message = {
       id: crypto.randomUUID(),
@@ -53,7 +63,13 @@ export default function Home() {
       timestamp: new Date(),
     };
 
+    clearChatSession();
     setState(prev => ({ ...prev, step: 'conversation', messages: [initialMessage] }));
+  };
+
+  const handleApiKeySet = () => {
+    setApiKeyReady(true);
+    handleStartJourney();
   };
 
   const handleAddMessage = (message: Message) => {
@@ -80,6 +96,7 @@ export default function Home() {
   };
 
   const handleRestart = () => {
+    clearChatSession();
     setState(prev => ({
       ...prev,
       step: 'welcome',
@@ -94,7 +111,11 @@ export default function Home() {
       dir={state.isRtl ? 'rtl' : 'ltr'}
       data-testid="home-page"
     >
-      <Header isRtl={state.isRtl} onToggleLanguage={toggleLanguage} />
+      <Header 
+        isRtl={state.isRtl} 
+        onToggleLanguage={toggleLanguage} 
+        onOpenSettings={() => setShowSettings(true)}
+      />
 
       <main className="pb-16">
         {state.step === 'welcome' && (
@@ -138,6 +159,13 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        isRtl={state.isRtl}
+        onApiKeySet={handleApiKeySet}
+      />
     </div>
   );
 }

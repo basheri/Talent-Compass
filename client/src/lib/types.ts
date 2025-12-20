@@ -25,6 +25,7 @@ export interface AppState {
 export const STORAGE_KEYS = {
   THEME: 'sanad_theme',
   LANGUAGE: 'sanad_language',
+  API_KEY: 'sanad_api_key',
 } as const;
 
 export function sanitizeJsonResponse(content: string): string {
