@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Settings, Moon, Sun, Languages, Compass } from 'lucide-react';
 import { SettingsModal } from './settings-modal';
 import { useTheme } from './theme-provider';
-import { hasApiKey } from '@/lib/openai';
+import { hasApiKey } from '@/lib/ai-service';
 
 interface HeaderProps {
   isRtl: boolean;

@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Loader2, Bot, User } from 'lucide-react';
 import type { Message, MisbarResult } from '@/lib/types';
 import { tryParseResult } from '@/lib/types';
-import { sendMessage } from '@/lib/openai';
+import { sendMessage } from '@/lib/ai-service';
 
 interface ConversationProps {
   isRtl: boolean;

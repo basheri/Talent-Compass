@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { ArrowRight, ArrowLeft, Compass, MessageCircle, FileText } from 'lucide-react';
-import { hasApiKey } from '@/lib/openai';
+import { hasApiKey } from '@/lib/ai-service';
 
 interface HeroSectionProps {
   isRtl: boolean;

@@ -6,7 +6,7 @@ import { ResultsDisplay } from '@/components/results-display';
 import { SettingsModal } from '@/components/settings-modal';
 import type { AppState, Message, MisbarResult } from '@/lib/types';
 import { STORAGE_KEYS } from '@/lib/types';
-import { hasApiKey } from '@/lib/openai';
+import { hasApiKey } from '@/lib/ai-service';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
@@ -51,8 +51,8 @@ export default function Home() {
       toast({
         title: state.isRtl ? 'مفتاح API مطلوب' : 'API Key Required',
         description: state.isRtl 
-          ? 'يرجى إدخال مفتاح OpenAI API للمتابعة' 
-          : 'Please enter your OpenAI API key to continue',
+          ? 'يرجى إدخال مفتاح API للمتابعة' 
+          : 'Please enter your API key to continue',
         variant: 'destructive',
       });
       return;
