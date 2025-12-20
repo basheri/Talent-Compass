@@ -39,7 +39,7 @@ A chat-based AI life coaching tool based on Anthony Robbins' "Time of Your Life"
 1. **Landing:** Clean welcome screen with "Start Now" button
 2. **Chat Phase:** AI conducts O.P.A. interview, processing user input through the framework
 3. **Report Phase:** When valid JSON detected with `"status": "complete"`, hide chat and render OPA Plan View
-4. **PDF Export:** Download professional A4 life plan using html2pdf.js
+4. **PDF Export:** Download professional A4 life plan using @react-pdf/renderer with Cairo Arabic font
 
 ### Key Files
 - `client/src/pages/home.tsx` - Main application page with state management
@@ -52,6 +52,8 @@ A chat-based AI life coaching tool based on Anthony Robbins' "Time of Your Life"
 - `shared/schema.ts` - Drizzle schema for system_prompts, chat_sessions, chat_messages
 - `client/src/components/conversation.tsx` - Chat interface with auto-completion detection
 - `client/src/components/results-display.tsx` - OPA Plan view with PDF export
+- `client/src/components/sanad-report-pdf.tsx` - PDF report component using @react-pdf/renderer
+- `public/fonts/Cairo-*.ttf` - Cairo Arabic font for proper RTL rendering in PDF
 - `client/src/index.css` - Sage Green theme colors
 
 ### Environment Variables
@@ -81,6 +83,7 @@ A chat-based AI life coaching tool based on Anthony Robbins' "Time of Your Life"
 - **Google Gemini:** gemini-2.5-flash model via @google/genai SDK
 
 ### Frontend Libraries
-- **html2pdf.js:** Dynamic import for PDF generation
+- **@react-pdf/renderer:** PDF generation with Cairo Arabic font for proper RTL
+- **react-markdown:** Markdown rendering in chat with @tailwindcss/typography
 - **Radix UI:** Accessible component primitives
 - **Lucide React:** Icon library
