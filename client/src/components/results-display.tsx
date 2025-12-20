@@ -1,11 +1,8 @@
-import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
-  FileDown, 
-  Loader2, 
   Target,
   Heart,
   Zap,
@@ -15,6 +12,7 @@ import {
   Clock
 } from 'lucide-react';
 import type { OPAResult } from '@/lib/types';
+import { DownloadReportButton } from './sanad-report-pdf';
 
 interface ResultsDisplayProps {
   isRtl: boolean;
@@ -23,14 +21,11 @@ interface ResultsDisplayProps {
 }
 
 export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps) {
-  const reportRef = useRef<HTMLDivElement>(null);
-  const [isExporting, setIsExporting] = useState(false);
-
   const labels = isRtl
     ? {
         title: 'خطة حياتك OPA',
         subtitle: 'نتائج مهندس الحياة',
-        exportPdf: 'تحميل PDF',
+        exportPdf: 'تحميل التقرير PDF',
         startNew: 'بدء جلسة جديدة',
         outcome: 'النتيجة المطلوبة',
         purpose: 'الغرض العاطفي',
@@ -45,7 +40,7 @@ export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps
     : {
         title: 'Your OPA Life Plan',
         subtitle: 'Life Architect Results',
-        exportPdf: 'Download PDF',
+        exportPdf: 'Download PDF Report',
         startNew: 'Start New Session',
         outcome: 'Your Outcome',
         purpose: 'Your Purpose (The Juice)',
@@ -57,45 +52,6 @@ export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps
         preparedBy: 'Prepared by OPA Life Architect',
         generatedOn: 'Generated on',
       };
-
-  const handleExportPdf = async () => {
-    if (!reportRef.current) return;
-
-    setIsExporting(true);
-
-    try {
-      const html2pdfModule = await import('html2pdf.js');
-      const html2pdf = html2pdfModule.default || html2pdfModule;
-      
-      if (typeof html2pdf !== 'function') {
-        throw new Error('PDF library not available');
-      }
-      
-      const element = reportRef.current;
-      const opt = {
-        margin: [10, 10, 10, 10] as [number, number, number, number],
-        filename: `opa-life-plan.pdf`,
-        image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
-          useCORS: true,
-          letterRendering: true,
-        },
-        jsPDF: { 
-          unit: 'mm', 
-          format: 'a4', 
-          orientation: 'portrait' as const
-        },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-      };
-
-      await html2pdf().set(opt).from(element).save();
-    } catch (error) {
-      console.error('PDF export failed:', error);
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   const currentDate = new Date().toLocaleDateString(isRtl ? 'ar-SA' : 'en-US', {
     year: 'numeric',
@@ -120,23 +76,11 @@ export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps
               <RefreshCw className="h-4 w-4 me-2" />
               {labels.startNew}
             </Button>
-            <Button
-              onClick={handleExportPdf}
-              disabled={isExporting}
-              data-testid="button-export-pdf"
-            >
-              {isExporting ? (
-                <Loader2 className="h-4 w-4 me-2 animate-spin" />
-              ) : (
-                <FileDown className="h-4 w-4 me-2" />
-              )}
-              {labels.exportPdf}
-            </Button>
+            <DownloadReportButton data={result} isRtl={isRtl} />
           </div>
         </div>
 
         <div 
-          ref={reportRef} 
           className="space-y-6 bg-background p-6" 
           data-testid="report-content"
           style={{ direction: isRtl ? 'rtl' : 'ltr' }}
