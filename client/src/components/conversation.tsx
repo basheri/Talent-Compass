@@ -3,30 +3,30 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2, Bot, User, CheckCircle2 } from 'lucide-react';
-import type { Message, AssessmentData } from '@/lib/types';
+import { Send, Loader2, Bot, User } from 'lucide-react';
+import type { Message, MisbarResult } from '@/lib/types';
+import { tryParseResult } from '@/lib/types';
 import { sendMessage } from '@/lib/openai';
 
 interface ConversationProps {
   isRtl: boolean;
   messages: Message[];
-  assessmentData: AssessmentData;
   language: 'en' | 'ar';
   onAddMessage: (message: Message) => void;
-  onFinish: () => void;
+  onComplete: (result: MisbarResult) => void;
+  onApiError: (error: string) => void;
 }
 
 export function Conversation({
   isRtl,
   messages,
-  assessmentData,
   language,
   onAddMessage,
-  onFinish,
+  onComplete,
+  onApiError,
 }: ConversationProps) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,8 +38,8 @@ export function Conversation({
   useEffect(() => {
     if (messages.length === 0) {
       const initialMessage = isRtl
-        ? `مرحباً ${assessmentData.name}! أنا هنا لمساعدتك في اكتشاف مسارك المهني المناسب ومواهبك الخفية. بناءً على المعلومات التي قدمتها، أرى أن لديك خلفية مثيرة للاهتمام.\n\nدعنا نتحدث أكثر عن تطلعاتك وما تحب أن تفعله. ما الجانب الذي تريد استكشافه أولاً؟`
-        : `Hello ${assessmentData.name}! I'm here to help you discover your ideal career path and hidden talents. Based on the information you've provided, I can see you have an interesting background.\n\nLet's talk more about your aspirations and what you enjoy doing. Which aspect would you like to explore first?`;
+        ? 'حياك الله! أنا مسبار، مستشارك المهني. خلنا نتعرف عليك أكثر عشان نكتشف نقاط قوتك وشغفك. بداية، قولي عن نفسك شوي، وش اللي تحب تسويه بوقت فراغك؟'
+        : "Hello! I'm Misbar, your career coach. Let's get to know you better to discover your strengths and passion. To start, tell me a bit about yourself - what do you enjoy doing in your free time?";
 
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
@@ -64,24 +64,29 @@ export function Conversation({
     onAddMessage(userMessage);
     setInput('');
     setIsLoading(true);
-    setError(null);
 
     try {
       const response = await sendMessage(
         [...messages, userMessage],
-        assessmentData,
         language
       );
 
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: response,
-        timestamp: new Date(),
-      };
-      onAddMessage(assistantMessage);
+      const result = tryParseResult(response);
+      
+      if (result) {
+        onComplete(result);
+      } else {
+        const assistantMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: response,
+          timestamp: new Date(),
+        };
+        onAddMessage(assistantMessage);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      onApiError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -96,29 +101,23 @@ export function Conversation({
 
   const labels = isRtl
     ? {
-        title: 'دعنا نتحدث عن مسارك المهني',
+        title: 'محادثة مع مسبار',
         placeholder: 'اكتب رسالتك هنا...',
         send: 'إرسال',
-        finish: 'إنهاء وعرض النتائج',
         thinking: 'جاري التفكير...',
-        minMessages: 'تحدث قليلاً قبل عرض النتائج',
       }
     : {
-        title: "Let's discuss your career path",
+        title: 'Chat with Misbar',
         placeholder: 'Type your message here...',
         send: 'Send',
-        finish: 'Finish & View Results',
         thinking: 'Thinking...',
-        minMessages: 'Chat a bit more before viewing results',
       };
-
-  const canFinish = messages.filter(m => m.role === 'user').length >= 2;
 
   return (
     <section className="py-8 px-4 md:px-6" dir={isRtl ? 'rtl' : 'ltr'}>
       <div className="max-w-3xl mx-auto space-y-4">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-semibold">{labels.title}</h2>
+          <h2 className="text-2xl font-semibold" data-testid="text-conversation-title">{labels.title}</h2>
         </div>
 
         <Card className="overflow-hidden">
@@ -165,7 +164,7 @@ export function Conversation({
               ))}
 
               {isLoading && (
-                <div className="flex gap-3">
+                <div className="flex gap-3" data-testid="typing-indicator">
                   <div className="flex-shrink-0 h-8 w-8 rounded-full bg-muted flex items-center justify-center">
                     <Bot className="h-4 w-4" />
                   </div>
@@ -181,11 +180,6 @@ export function Conversation({
           </ScrollArea>
 
           <CardContent className="border-t p-4">
-            {error && (
-              <div className="mb-3 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-                {error}
-              </div>
-            )}
             <div className="flex gap-3">
               <Textarea
                 value={input}
@@ -212,24 +206,6 @@ export function Conversation({
             </div>
           </CardContent>
         </Card>
-
-        <div className="flex justify-center pt-4">
-          <Button
-            size="lg"
-            onClick={onFinish}
-            disabled={!canFinish || isLoading}
-            className="gap-2"
-            data-testid="button-finish-conversation"
-          >
-            <CheckCircle2 className="h-5 w-5" />
-            {labels.finish}
-          </Button>
-        </div>
-        {!canFinish && (
-          <p className="text-center text-sm text-muted-foreground">
-            {labels.minMessages}
-          </p>
-        )}
       </div>
     </section>
   );

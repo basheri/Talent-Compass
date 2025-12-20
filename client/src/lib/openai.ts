@@ -1,4 +1,4 @@
-import type { AssessmentData, AssessmentResult, Message } from './types';
+import type { Message } from './types';
 import { STORAGE_KEYS } from './types';
 
 export function getApiKey(): string | null {
@@ -18,48 +18,53 @@ export function hasApiKey(): boolean {
   return !!key && key.trim().length > 0;
 }
 
-const SYSTEM_PROMPT = `You are an expert career counselor and talent discovery specialist. Your role is to help users discover their hidden talents, identify their strengths, and find career paths that align with their abilities and passions.
+const SYSTEM_PROMPT_AR = `**Role:** You are 'Misbar' (مسبار), an expert Saudi Career Coach.
+**Tone:** Professional yet warm, using natural Saudi dialect (e.g., 'حياك الله', 'وش اللي يخليك تبدع؟').
+**Rules:**
+1. Ask ONE open-ended question at a time.
+2. Dig deep into 'Why' and 'How'. Avoid generic lists.
+3. **Auto-Termination:** You decide when to stop. Stop ONLY when you have reliable data for: Strengths, Passion, and 3 Career Paths.
+4. **Output Protocol:**
+   - During chat: Plain text in Arabic.
+   - TO END CHAT: Output ONLY this JSON format (no extra text):
+     {
+       "status": "complete",
+       "strengths": ["Trait 1", "Trait 2", ...],
+       "passion": "Description...",
+       "career_paths": ["Path 1", "Path 2", "Path 3"],
+       "reliability_score": 88
+     }`;
 
-When analyzing a user's profile, consider:
-1. Their educational background and how it relates to potential careers
-2. Their current skills and how they can be leveraged
-3. Their interests and passions as indicators of intrinsic motivation
-4. Their goals and how to create a path toward them
-5. Their challenges and how to overcome them
-
-Provide thoughtful, personalized advice. Be encouraging but realistic. Consider both traditional and non-traditional career paths. Focus on actionable insights.
-
-When asked to provide a final assessment, structure your response as a comprehensive career analysis with specific career suggestions, required skills, and next steps.`;
+const SYSTEM_PROMPT_EN = `**Role:** You are 'Misbar', an expert Career Coach.
+**Tone:** Professional yet warm and encouraging.
+**Rules:**
+1. Ask ONE open-ended question at a time.
+2. Dig deep into 'Why' and 'How'. Avoid generic lists.
+3. **Auto-Termination:** You decide when to stop. Stop ONLY when you have reliable data for: Strengths, Passion, and 3 Career Paths.
+4. **Output Protocol:**
+   - During chat: Plain text in English.
+   - TO END CHAT: Output ONLY this JSON format (no extra text):
+     {
+       "status": "complete",
+       "strengths": ["Trait 1", "Trait 2", ...],
+       "passion": "Description...",
+       "career_paths": ["Path 1", "Path 2", "Path 3"],
+       "reliability_score": 88
+     }`;
 
 export async function sendMessage(
   messages: Message[],
-  assessmentData: AssessmentData,
   language: 'en' | 'ar'
 ): Promise<string> {
   const apiKey = getApiKey();
   if (!apiKey) {
-    throw new Error('API key not configured');
+    throw new Error(language === 'ar' ? 'مفتاح API غير مكوّن' : 'API key not configured');
   }
 
-  const languageInstruction = language === 'ar' 
-    ? 'Respond in Arabic language.' 
-    : 'Respond in English language.';
-
-  const contextMessage = `User Profile:
-- Name: ${assessmentData.name}
-- Age: ${assessmentData.age}
-- Education: ${assessmentData.education}
-- Current Role: ${assessmentData.currentRole}
-- Skills: ${assessmentData.skills}
-- Interests: ${assessmentData.interests}
-- Goals: ${assessmentData.goals}
-- Challenges: ${assessmentData.challenges}
-
-${languageInstruction}`;
+  const systemPrompt = language === 'ar' ? SYSTEM_PROMPT_AR : SYSTEM_PROMPT_EN;
 
   const apiMessages = [
-    { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'system', content: contextMessage },
+    { role: 'system', content: systemPrompt },
     ...messages.map(m => ({
       role: m.role,
       content: m.content,
@@ -82,96 +87,17 @@ ${languageInstruction}`;
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.error?.message || 'Failed to get response from AI');
-  }
-
-  const data = await response.json();
-  return data.choices[0]?.message?.content || 'No response received';
-}
-
-export async function generateFinalAssessment(
-  messages: Message[],
-  assessmentData: AssessmentData,
-  language: 'en' | 'ar'
-): Promise<AssessmentResult> {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    throw new Error('API key not configured');
-  }
-
-  const languageInstruction = language === 'ar' 
-    ? 'Respond in Arabic language. Use Arabic for all text.' 
-    : 'Respond in English language.';
-
-  const analysisPrompt = `Based on our conversation and the user's profile, provide a comprehensive career and talent assessment. ${languageInstruction}
-
-Return your response as a valid JSON object with this exact structure:
-{
-  "summary": "A comprehensive 2-3 paragraph summary of the user's profile, strengths, and career potential",
-  "strengths": ["strength1", "strength2", "strength3", "strength4", "strength5"],
-  "talents": ["talent1", "talent2", "talent3", "talent4"],
-  "careerSuggestions": [
-    {
-      "title": "Career Title",
-      "description": "Brief description of this career path and why it fits the user",
-      "matchScore": 85,
-      "requiredSkills": ["skill1", "skill2", "skill3"],
-      "growthPotential": "High",
-      "nextSteps": ["step1", "step2", "step3"]
+    const errorMessage = error.error?.message || '';
+    
+    if (response.status === 401 || errorMessage.includes('invalid') || errorMessage.includes('Incorrect API key')) {
+      throw new Error(language === 'ar' ? 'مفتاح API غير صالح' : 'Invalid API key');
     }
-  ],
-  "developmentAreas": ["area1", "area2", "area3"],
-  "recommendedResources": ["resource1", "resource2", "resource3"]
-}
-
-Provide at least 3 career suggestions with match scores between 60-95. Be specific and actionable.`;
-
-  const contextMessage = `User Profile:
-- Name: ${assessmentData.name}
-- Age: ${assessmentData.age}
-- Education: ${assessmentData.education}
-- Current Role: ${assessmentData.currentRole}
-- Skills: ${assessmentData.skills}
-- Interests: ${assessmentData.interests}
-- Goals: ${assessmentData.goals}
-- Challenges: ${assessmentData.challenges}`;
-
-  const apiMessages = [
-    { role: 'system' as const, content: SYSTEM_PROMPT },
-    { role: 'system' as const, content: contextMessage },
-    ...messages.map(m => ({
-      role: m.role as 'user' | 'assistant' | 'system',
-      content: m.content,
-    })),
-    { role: 'user' as const, content: analysisPrompt },
-  ];
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: apiMessages,
-      temperature: 0.7,
-      max_tokens: 3000,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error?.message || 'Failed to generate assessment');
+    if (response.status === 429 || errorMessage.includes('quota') || errorMessage.includes('exceeded')) {
+      throw new Error(language === 'ar' ? 'تم تجاوز حصة API' : 'API quota exceeded');
+    }
+    throw new Error(errorMessage || (language === 'ar' ? 'فشل في الحصول على استجابة' : 'Failed to get response'));
   }
 
   const data = await response.json();
-  const content = data.choices[0]?.message?.content || '';
-  
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Invalid response format');
-  }
-  
-  return JSON.parse(jsonMatch[0]) as AssessmentResult;
+  return data.choices[0]?.message?.content || '';
 }

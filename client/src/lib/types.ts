@@ -5,58 +5,55 @@ export interface Message {
   timestamp: Date;
 }
 
-export interface AssessmentData {
-  name: string;
-  age: string;
-  education: string;
-  currentRole: string;
-  skills: string;
-  interests: string;
-  goals: string;
-  challenges: string;
-}
-
-export interface CareerSuggestion {
-  title: string;
-  description: string;
-  matchScore: number;
-  requiredSkills: string[];
-  growthPotential: 'High' | 'Medium' | 'Low';
-  nextSteps: string[];
-}
-
-export interface AssessmentResult {
-  summary: string;
+export interface MisbarResult {
+  status: 'complete';
   strengths: string[];
-  talents: string[];
-  careerSuggestions: CareerSuggestion[];
-  developmentAreas: string[];
-  recommendedResources: string[];
+  passion: string;
+  career_paths: string[];
+  reliability_score: number;
 }
 
 export interface AppState {
-  step: 'welcome' | 'assessment' | 'conversation' | 'results';
-  assessmentData: AssessmentData | null;
+  step: 'welcome' | 'conversation' | 'results';
   messages: Message[];
-  result: AssessmentResult | null;
+  result: MisbarResult | null;
   isLoading: boolean;
   isRtl: boolean;
   language: 'en' | 'ar';
 }
 
-export const initialAssessmentData: AssessmentData = {
-  name: '',
-  age: '',
-  education: '',
-  currentRole: '',
-  skills: '',
-  interests: '',
-  goals: '',
-  challenges: '',
-};
-
 export const STORAGE_KEYS = {
-  API_KEY: 'career_discovery_api_key',
-  THEME: 'career_discovery_theme',
-  LANGUAGE: 'career_discovery_language',
+  API_KEY: 'misbar_api_key',
+  THEME: 'misbar_theme',
+  LANGUAGE: 'misbar_language',
 } as const;
+
+export function sanitizeJsonResponse(content: string): string {
+  let cleaned = content.trim();
+  cleaned = cleaned.replace(/^```json\s*/i, '');
+  cleaned = cleaned.replace(/^```\s*/i, '');
+  cleaned = cleaned.replace(/\s*```$/i, '');
+  return cleaned.trim();
+}
+
+export function tryParseResult(content: string): MisbarResult | null {
+  try {
+    const sanitized = sanitizeJsonResponse(content);
+    const jsonMatch = sanitized.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (
+      parsed.status === 'complete' &&
+      Array.isArray(parsed.strengths) &&
+      typeof parsed.passion === 'string' &&
+      Array.isArray(parsed.career_paths) &&
+      typeof parsed.reliability_score === 'number'
+    ) {
+      return parsed as MisbarResult;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}

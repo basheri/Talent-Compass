@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Settings, Moon, Sun, Languages, Sparkles } from 'lucide-react';
+import { Settings, Moon, Sun, Languages, Compass } from 'lucide-react';
 import { SettingsModal } from './settings-modal';
 import { useTheme } from './theme-provider';
 import { hasApiKey } from '@/lib/openai';
@@ -16,8 +16,8 @@ export function Header({ isRtl, onToggleLanguage }: HeaderProps) {
   const hasKey = hasApiKey();
 
   const labels = isRtl
-    ? { title: 'اكتشاف المسار المهني', subtitle: 'اكتشف مواهبك' }
-    : { title: 'Career & Talent Discovery', subtitle: 'Discover Your Path' };
+    ? { title: 'مسبار', subtitle: 'اكتشاف المهنة' }
+    : { title: 'Misbar', subtitle: 'Career Discovery' };
 
   return (
     <>
@@ -28,7 +28,7 @@ export function Header({ isRtl, onToggleLanguage }: HeaderProps) {
         <div className="max-w-6xl mx-auto h-full flex items-center justify-between gap-4 px-4 md:px-6">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
-              <Sparkles className="h-5 w-5 text-primary-foreground" />
+              <Compass className="h-5 w-5 text-primary-foreground" />
             </div>
             <div className="flex flex-col">
               <span className="font-semibold text-sm md:text-base leading-tight" data-testid="text-app-title">

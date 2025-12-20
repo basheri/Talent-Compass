@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ArrowLeft, Sparkles, Target, TrendingUp } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Compass, MessageCircle, FileText } from 'lucide-react';
 import { hasApiKey } from '@/lib/openai';
 
 interface HeroSectionProps {
@@ -14,29 +14,29 @@ export function HeroSection({ isRtl, onStart, onOpenSettings }: HeroSectionProps
 
   const content = isRtl
     ? {
-        badge: 'مدعوم بالذكاء الاصطناعي',
-        title: 'اكتشف مسارك المهني',
-        titleHighlight: 'ومواهبك الخفية',
-        description: 'احصل على تحليل شخصي شامل لمهاراتك واهتماماتك واكتشف المسارات المهنية التي تناسبك. صدّر تقريرك المهني بصيغة PDF.',
-        ctaStart: 'ابدأ الآن',
+        badge: 'مستشارك المهني السعودي',
+        title: 'مسبار',
+        titleHighlight: 'اكتشف شغفك ومواهبك',
+        description: 'حياك الله! أنا مسبار، مستشارك المهني بالذكاء الاصطناعي. راح نتكلم سوا عشان نكتشف نقاط قوتك وشغفك، وبعدين نطلع لك تقرير مهني احترافي.',
+        ctaStart: 'ابدأ الرحلة',
         ctaSettings: 'أدخل مفتاح API أولاً',
         features: [
-          { icon: Sparkles, text: 'تحليل ذكي للمهارات' },
-          { icon: Target, text: 'اقتراحات مهنية دقيقة' },
-          { icon: TrendingUp, text: 'خطوات عملية للنمو' },
+          { icon: MessageCircle, text: 'محادثة ذكية' },
+          { icon: Compass, text: 'اكتشاف الشغف' },
+          { icon: FileText, text: 'تقرير PDF' },
         ],
       }
     : {
-        badge: 'AI-Powered Analysis',
-        title: 'Discover Your Career Path',
-        titleHighlight: '& Hidden Talents',
-        description: 'Get a comprehensive, personalized analysis of your skills and interests. Uncover career paths that align with your unique potential and export professional PDF reports.',
-        ctaStart: 'Start Discovery',
+        badge: 'Your AI Career Coach',
+        title: 'Misbar',
+        titleHighlight: 'Discover Your Passion & Strengths',
+        description: "Hello! I'm Misbar, your AI career coach. Let's have a conversation to discover your strengths and passion, then I'll generate a professional career report for you.",
+        ctaStart: 'Start Journey',
         ctaSettings: 'Enter API Key First',
         features: [
-          { icon: Sparkles, text: 'Smart Skills Analysis' },
-          { icon: Target, text: 'Precise Career Suggestions' },
-          { icon: TrendingUp, text: 'Actionable Growth Steps' },
+          { icon: MessageCircle, text: 'Smart Conversation' },
+          { icon: Compass, text: 'Passion Discovery' },
+          { icon: FileText, text: 'PDF Report' },
         ],
       };
 
@@ -47,14 +47,16 @@ export function HeroSection({ isRtl, onStart, onOpenSettings }: HeroSectionProps
     >
       <div className="max-w-4xl mx-auto text-center space-y-8">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
-          <Sparkles className="h-4 w-4" />
+          <Compass className="h-4 w-4" />
           {content.badge}
         </div>
 
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight">
-          {content.title}
+          <span className="bg-gradient-to-r from-primary to-emerald-500 bg-clip-text text-transparent">
+            {content.title}
+          </span>
           <br />
-          <span className="bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">
+          <span className="text-2xl md:text-3xl lg:text-4xl text-foreground mt-2 block">
             {content.titleHighlight}
           </span>
         </h1>
@@ -69,7 +71,7 @@ export function HeroSection({ isRtl, onStart, onOpenSettings }: HeroSectionProps
               size="lg"
               onClick={onStart}
               className="text-base px-8"
-              data-testid="button-start-discovery"
+              data-testid="button-start-journey"
             >
               {content.ctaStart}
               <ArrowIcon className="h-5 w-5 ms-2" />

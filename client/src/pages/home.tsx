@@ -1,32 +1,26 @@
 import { useState, useEffect } from 'react';
 import { Header } from '@/components/header';
 import { HeroSection } from '@/components/hero-section';
-import { AssessmentForm } from '@/components/assessment-form';
 import { Conversation } from '@/components/conversation';
 import { ResultsDisplay } from '@/components/results-display';
 import { SettingsModal } from '@/components/settings-modal';
-import { Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import type { AppState, AssessmentData, Message } from '@/lib/types';
+import type { AppState, Message, MisbarResult } from '@/lib/types';
 import { STORAGE_KEYS } from '@/lib/types';
-import { generateFinalAssessment, hasApiKey } from '@/lib/openai';
+import { hasApiKey } from '@/lib/openai';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const { toast } = useToast();
   const [state, setState] = useState<AppState>({
     step: 'welcome',
-    assessmentData: null,
     messages: [],
     result: null,
     isLoading: false,
-    isRtl: false,
-    language: 'en',
+    isRtl: true,
+    language: 'ar',
   });
   
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [generatingResults, setGeneratingResults] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const savedLanguage = localStorage.getItem(STORAGE_KEYS.LANGUAGE) as 'en' | 'ar' | null;
@@ -51,7 +45,7 @@ export default function Home() {
     });
   };
 
-  const handleStartAssessment = () => {
+  const handleStartJourney = () => {
     if (!hasApiKey()) {
       setSettingsOpen(true);
       toast({
@@ -63,27 +57,7 @@ export default function Home() {
       });
       return;
     }
-    setState(prev => ({ ...prev, step: 'assessment' }));
-  };
-
-  const handleAssessmentComplete = (data: AssessmentData) => {
-    if (!hasApiKey()) {
-      setSettingsOpen(true);
-      toast({
-        title: state.isRtl ? 'مفتاح API مطلوب' : 'API Key Required',
-        description: state.isRtl 
-          ? 'يرجى إدخال مفتاح OpenAI API للمتابعة' 
-          : 'Please enter your OpenAI API key to continue',
-        variant: 'destructive',
-      });
-      return;
-    }
-    setState(prev => ({
-      ...prev,
-      assessmentData: data,
-      step: 'conversation',
-      messages: [],
-    }));
+    setState(prev => ({ ...prev, step: 'conversation', messages: [] }));
   };
 
   const handleAddMessage = (message: Message) => {
@@ -93,71 +67,38 @@ export default function Home() {
     }));
   };
 
-  const handleFinishConversation = async () => {
-    if (!state.assessmentData) return;
+  const handleComplete = (result: MisbarResult) => {
+    setState(prev => ({
+      ...prev,
+      result,
+      step: 'results',
+    }));
+  };
 
-    if (!hasApiKey()) {
+  const handleApiError = (errorMessage: string) => {
+    toast({
+      title: state.isRtl ? 'حدث خطأ' : 'Error',
+      description: errorMessage,
+      variant: 'destructive',
+    });
+    
+    if (errorMessage.includes('API') || errorMessage.includes('key') || errorMessage.includes('مفتاح')) {
       setSettingsOpen(true);
-      toast({
-        title: state.isRtl ? 'مفتاح API مطلوب' : 'API Key Required',
-        description: state.isRtl 
-          ? 'يرجى إدخال مفتاح OpenAI API للمتابعة' 
-          : 'Please enter your OpenAI API key to continue',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setGeneratingResults(true);
-    setError(null);
-    setState(prev => ({ ...prev, isLoading: true }));
-
-    try {
-      const result = await generateFinalAssessment(
-        state.messages,
-        state.assessmentData,
-        state.language
-      );
-      setState(prev => ({
-        ...prev,
-        result,
-        step: 'results',
-        isLoading: false,
-      }));
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to generate results';
-      setError(errorMessage);
-      toast({
-        title: state.isRtl ? 'حدث خطأ' : 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-      setState(prev => ({ ...prev, isLoading: false }));
-    } finally {
-      setGeneratingResults(false);
     }
   };
 
   const handleRestart = () => {
-    setState({
+    setState(prev => ({
+      ...prev,
       step: 'welcome',
-      assessmentData: null,
       messages: [],
       result: null,
-      isLoading: false,
-      isRtl: state.isRtl,
-      language: state.language,
-    });
-    setError(null);
+    }));
   };
-
-  const labels = state.isRtl
-    ? { generating: 'جاري إنشاء تقريرك المهني...', tryAgain: 'حاول مرة أخرى', errorTitle: 'حدث خطأ' }
-    : { generating: 'Generating your career report...', tryAgain: 'Try Again', errorTitle: 'An error occurred' };
 
   return (
     <div 
-      className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950"
+      className="min-h-screen bg-gradient-to-b from-emerald-50/50 to-white dark:from-gray-900 dark:to-gray-950"
       dir={state.isRtl ? 'rtl' : 'ltr'}
       data-testid="home-page"
     >
@@ -167,68 +108,26 @@ export default function Home() {
         {state.step === 'welcome' && (
           <HeroSection
             isRtl={state.isRtl}
-            onStart={handleStartAssessment}
+            onStart={handleStartJourney}
             onOpenSettings={() => setSettingsOpen(true)}
           />
         )}
 
-        {state.step === 'assessment' && (
-          <AssessmentForm
-            isRtl={state.isRtl}
-            onComplete={handleAssessmentComplete}
-            onBack={() => setState(prev => ({ ...prev, step: 'welcome' }))}
-          />
-        )}
-
-        {state.step === 'conversation' && state.assessmentData && !generatingResults && !error && (
+        {state.step === 'conversation' && (
           <Conversation
             isRtl={state.isRtl}
             messages={state.messages}
-            assessmentData={state.assessmentData}
             language={state.language}
             onAddMessage={handleAddMessage}
-            onFinish={handleFinishConversation}
+            onComplete={handleComplete}
+            onApiError={handleApiError}
           />
         )}
 
-        {generatingResults && (
-          <div className="py-32 flex flex-col items-center justify-center gap-4" data-testid="loading-results">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-lg text-muted-foreground">{labels.generating}</p>
-          </div>
-        )}
-
-        {error && !generatingResults && state.step === 'conversation' && state.assessmentData && (
-          <>
-            <Conversation
-              isRtl={state.isRtl}
-              messages={state.messages}
-              assessmentData={state.assessmentData}
-              language={state.language}
-              onAddMessage={handleAddMessage}
-              onFinish={handleFinishConversation}
-            />
-            <div className="max-w-2xl mx-auto py-4 px-4 text-center" data-testid="error-display">
-              <div className="p-4 rounded-lg bg-destructive/10 text-destructive">
-                <p className="text-sm mb-3">{error}</p>
-                <Button
-                  onClick={() => setError(null)}
-                  variant="outline"
-                  size="sm"
-                  data-testid="button-dismiss-error"
-                >
-                  {labels.tryAgain}
-                </Button>
-              </div>
-            </div>
-          </>
-        )}
-
-        {state.step === 'results' && state.result && state.assessmentData && (
+        {state.step === 'results' && state.result && (
           <ResultsDisplay
             isRtl={state.isRtl}
             result={state.result}
-            assessmentData={state.assessmentData}
             onRestart={handleRestart}
           />
         )}
