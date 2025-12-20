@@ -1,4 +1,6 @@
-import { Document, Page, Text, View, StyleSheet, Font, PDFDownloadLink } from '@react-pdf/renderer';
+import { useState } from 'react';
+import { Document, Page, Text, View, StyleSheet, Font, pdf } from '@react-pdf/renderer';
+import { saveAs } from 'file-saver';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
 import type { OPAResult } from '@/lib/types';
@@ -6,8 +8,8 @@ import type { OPAResult } from '@/lib/types';
 Font.register({
   family: 'Cairo',
   fonts: [
-    { src: 'https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkvangtZmpcWmhzfH5lWWgcQyyS4J0.ttf', fontWeight: 'normal' },
-    { src: 'https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkvangtZmpcWmhzfH5l92gcQyyS4J0.ttf', fontWeight: 'bold' }
+    { src: '/fonts/Cairo-Regular.ttf', fontWeight: 'normal' },
+    { src: '/fonts/Cairo-Bold.ttf', fontWeight: 'bold' }
   ]
 });
 
@@ -278,8 +280,32 @@ interface DownloadReportButtonProps {
 }
 
 export function DownloadReportButton({ data, isRtl }: DownloadReportButtonProps) {
+  const [isGenerating, setIsGenerating] = useState(false);
+  
   const buttonLabel = isRtl ? 'تحميل التقرير PDF' : 'Download PDF Report';
+  const loadingLabel = isRtl ? 'جاري تجهيز الملف...' : 'Generating PDF...';
   const fileName = isRtl ? 'تقرير-سند.pdf' : 'sanad-report.pdf';
+  const errorMessage = isRtl 
+    ? 'عذراً، حدث خطأ أثناء تجهيز الملف. يرجى المحاولة مرة أخرى.' 
+    : 'Sorry, an error occurred while generating the file. Please try again.';
+
+  const handleDownload = async () => {
+    if (!data) return;
+    
+    try {
+      setIsGenerating(true);
+      
+      const blob = await pdf(<SanadReportPDF data={data} isRtl={isRtl} />).toBlob();
+      
+      saveAs(blob, fileName);
+      
+    } catch (error) {
+      console.error("PDF Generation Failed:", error);
+      alert(errorMessage);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   if (!data) {
     return (
@@ -291,21 +317,18 @@ export function DownloadReportButton({ data, isRtl }: DownloadReportButtonProps)
   }
 
   return (
-    <PDFDownloadLink
-      document={<SanadReportPDF data={data} isRtl={isRtl} />}
-      fileName={fileName}
+    <Button 
+      onClick={handleDownload} 
+      disabled={isGenerating}
+      data-testid="button-export-pdf"
     >
-      {({ loading }) => (
-        <Button disabled={loading} data-testid="button-export-pdf">
-          {loading ? (
-            <Loader2 className="h-4 w-4 me-2 animate-spin" />
-          ) : (
-            <FileDown className="h-4 w-4 me-2" />
-          )}
-          {buttonLabel}
-        </Button>
+      {isGenerating ? (
+        <Loader2 className="h-4 w-4 me-2 animate-spin" />
+      ) : (
+        <FileDown className="h-4 w-4 me-2" />
       )}
-    </PDFDownloadLink>
+      {isGenerating ? loadingLabel : buttonLabel}
+    </Button>
   );
 }
 
