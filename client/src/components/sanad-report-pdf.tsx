@@ -4,62 +4,16 @@ import { saveAs } from 'file-saver';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
 import type { OPAResult } from '@/lib/types';
+import { CAIRO_REGULAR_BASE64, CAIRO_BOLD_BASE64 } from '@/lib/cairo-fonts';
 
-// Use absolute URLs for font registration to work across all environments
-const getBaseUrl = () => {
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
-  }
-  return '';
-};
-
-let fontsRegistered = false;
-let fontBlobUrls: { regular: string; bold: string } | null = null;
-
-const registerFonts = async () => {
-  if (fontsRegistered && fontBlobUrls) return true;
-  
-  try {
-    const baseUrl = getBaseUrl();
-    const regularFontUrl = `${baseUrl}/fonts/Cairo-Regular.ttf`;
-    const boldFontUrl = `${baseUrl}/fonts/Cairo-Bold.ttf`;
-    
-    // Pre-fetch fonts to verify they're accessible
-    const [regularRes, boldRes] = await Promise.all([
-      fetch(regularFontUrl),
-      fetch(boldFontUrl)
-    ]);
-    
-    if (!regularRes.ok || !boldRes.ok) {
-      throw new Error(`Font files not accessible: regular=${regularRes.status}, bold=${boldRes.status}`);
-    }
-    
-    // Convert to blobs and create blob URLs
-    const [regularBlob, boldBlob] = await Promise.all([
-      regularRes.blob(),
-      boldRes.blob()
-    ]);
-    
-    fontBlobUrls = {
-      regular: URL.createObjectURL(regularBlob),
-      bold: URL.createObjectURL(boldBlob)
-    };
-    
-    Font.register({
-      family: 'Cairo',
-      fonts: [
-        { src: fontBlobUrls.regular, fontWeight: 'normal' },
-        { src: fontBlobUrls.bold, fontWeight: 'bold' }
-      ]
-    });
-    
-    fontsRegistered = true;
-    return true;
-  } catch (error) {
-    console.error('Font registration failed:', error);
-    return false;
-  }
-};
+// Register fonts using embedded base64 data for reliable loading across all environments
+Font.register({
+  family: 'Cairo',
+  fonts: [
+    { src: CAIRO_REGULAR_BASE64, fontWeight: 'normal' },
+    { src: CAIRO_BOLD_BASE64, fontWeight: 'bold' }
+  ]
+});
 
 const styles = StyleSheet.create({
   page: {
@@ -342,12 +296,6 @@ export function DownloadReportButton({ data, isRtl }: DownloadReportButtonProps)
     
     try {
       setIsGenerating(true);
-      
-      // Register fonts before generating PDF
-      const fontsLoaded = await registerFonts();
-      if (!fontsLoaded) {
-        throw new Error('Failed to load fonts');
-      }
       
       const blob = await pdf(<SanadReportPDF data={data} isRtl={isRtl} />).toBlob();
       
