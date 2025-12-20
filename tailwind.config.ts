@@ -83,9 +83,10 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["var(--font-sans)"],
+        sans: ["Inter", "Noto Sans Arabic", "sans-serif"],
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
+        arabic: ["Noto Sans Arabic", "Inter", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {
