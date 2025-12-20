@@ -27,26 +27,26 @@ export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps
   const labels = isRtl
     ? {
         title: 'تقريرك المهني',
-        subtitle: 'نتائج تحليل مسبار',
+        subtitle: 'نتائج تحليل سند',
         exportPdf: 'تحميل PDF',
         startNew: 'بدء محادثة جديدة',
         strengths: 'نقاط القوة',
         passion: 'الشغف',
         careerPaths: 'المسارات المهنية المقترحة',
         reliabilityScore: 'نسبة الموثوقية',
-        preparedBy: 'تم إعداد هذا التقرير بواسطة مسبار',
+        preparedBy: 'تم إعداد هذا التقرير بواسطة سند',
         generatedOn: 'تاريخ الإعداد',
       }
     : {
         title: 'Your Career Report',
-        subtitle: 'Misbar Analysis Results',
+        subtitle: 'Sanad Analysis Results',
         exportPdf: 'Download PDF',
         startNew: 'Start New Journey',
         strengths: 'Your Strengths',
         passion: 'Your Passion',
         careerPaths: 'Suggested Career Paths',
         reliabilityScore: 'Reliability Score',
-        preparedBy: 'This report was prepared by Misbar',
+        preparedBy: 'This report was prepared by Sanad',
         generatedOn: 'Generated on',
       };
 
@@ -66,7 +66,7 @@ export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps
       const element = reportRef.current;
       const opt = {
         margin: [10, 10, 10, 10],
-        filename: `misbar-career-report.pdf`,
+        filename: `sanad-career-report.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
           scale: 2, 
@@ -211,7 +211,7 @@ export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps
           </Card>
 
           <div className="text-center pt-6 border-t text-xs text-muted-foreground print:block">
-            <p>مسبار - Misbar Career Discovery</p>
+            <p>سند - Sanad Career Discovery</p>
             <p>{currentDate}</p>
           </div>
         </div>

@@ -12,9 +12,9 @@ export function HeroSection({ isRtl, onStart }: HeroSectionProps) {
   const content = isRtl
     ? {
         badge: 'مستشارك المهني السعودي',
-        title: 'مسبار',
+        title: 'سند',
         titleHighlight: 'اكتشف شغفك ومواهبك',
-        description: 'حياك الله! أنا مسبار، مستشارك المهني بالذكاء الاصطناعي. راح نتكلم سوا عشان نكتشف نقاط قوتك وشغفك، وبعدين نطلع لك تقرير مهني احترافي.',
+        description: 'حياك الله! أنا سند، مستشارك المهني بالذكاء الاصطناعي. راح نتكلم سوا عشان نكتشف نقاط قوتك وشغفك، وبعدين نطلع لك تقرير مهني احترافي.',
         ctaStart: 'ابدأ الرحلة',
         features: [
           { icon: MessageCircle, text: 'محادثة ذكية' },
@@ -24,9 +24,9 @@ export function HeroSection({ isRtl, onStart }: HeroSectionProps) {
       }
     : {
         badge: 'Your AI Career Coach',
-        title: 'Misbar',
+        title: 'Sanad',
         titleHighlight: 'Discover Your Passion & Strengths',
-        description: "Hello! I'm Misbar, your AI career coach. Let's have a conversation to discover your strengths and passion, then I'll generate a professional career report for you.",
+        description: "Hello! I'm Sanad, your AI career coach. Let's have a conversation to discover your strengths and passion, then I'll generate a professional career report for you.",
         ctaStart: 'Start Journey',
         features: [
           { icon: MessageCircle, text: 'Smart Conversation' },

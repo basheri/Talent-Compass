@@ -10,7 +10,7 @@ const ai = new GoogleGenAI({
   },
 });
 
-const SYSTEM_PROMPT_AR = `**Role:** You are 'Misbar' (مسبار), an expert Saudi Career Coach.
+const SYSTEM_PROMPT_AR = `**Role:** You are 'Sanad' (سند), an expert Saudi Career Coach.
 **Tone:** Professional yet warm, using natural Saudi dialect (e.g., 'حياك الله', 'وش اللي يخليك تبدع؟').
 **Rules:**
 1. Ask ONE open-ended question at a time.
@@ -27,7 +27,7 @@ const SYSTEM_PROMPT_AR = `**Role:** You are 'Misbar' (مسبار), an expert Sau
        "reliability_score": 88
      }`;
 
-const SYSTEM_PROMPT_EN = `**Role:** You are 'Misbar', an expert Career Coach.
+const SYSTEM_PROMPT_EN = `**Role:** You are 'Sanad', an expert Career Coach.
 **Tone:** Professional yet warm and encouraging.
 **Rules:**
 1. Ask ONE open-ended question at a time.

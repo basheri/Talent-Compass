@@ -23,8 +23,8 @@ export interface AppState {
 }
 
 export const STORAGE_KEYS = {
-  THEME: 'misbar_theme',
-  LANGUAGE: 'misbar_language',
+  THEME: 'sanad_theme',
+  LANGUAGE: 'sanad_language',
 } as const;
 
 export function sanitizeJsonResponse(content: string): string {

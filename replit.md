@@ -1,8 +1,8 @@
-# Misbar - Career Discovery (مسبار - اكتشاف المهنة)
+# Sanad - Career Discovery (سند - اكتشاف المهنة)
 
 ## Overview
 
-A chat-based AI career discovery tool where "Misbar" (مسبار), a Saudi Career Coach AI, interviews the user to discover their strengths and passion, then auto-generates a professional A4 PDF report. The app uses Replit's built-in Gemini AI integration - no API key needed.
+A chat-based AI career discovery tool where "Sanad" (سند), a Saudi Career Coach AI, interviews the user to discover their strengths and passion, then auto-generates a professional A4 PDF report. The app uses Replit's built-in Gemini AI integration - no API key needed.
 
 ## User Preferences
 
@@ -21,7 +21,7 @@ A chat-based AI career discovery tool where "Misbar" (مسبار), a Saudi Caree
 ### AI Integration
 - **Provider:** Google Gemini (via Replit AI Integrations)
 - **Model:** gemini-2.5-flash
-- **Character:** "Misbar" (مسبار) - Expert Saudi Career Coach
+- **Character:** "Sanad" (سند) - Expert Saudi Career Coach
 - **Dialect:** Natural Saudi dialect (e.g., 'حياك الله', 'وش اللي يخليك تبدع؟')
 - **Behavior:** Asks ONE open-ended question at a time, digs deep into 'Why' and 'How'
 - **Auto-Termination:** AI decides when to stop based on gathered data for Strengths, Passion, and Career Paths

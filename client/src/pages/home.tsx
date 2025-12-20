@@ -43,8 +43,8 @@ export default function Home() {
 
   const handleStartJourney = () => {
     const initialGreeting = state.isRtl
-      ? 'حياك الله! أنا مسبار، مستشارك المهني. خلنا نتعرف عليك أكثر عشان نكتشف نقاط قوتك وشغفك. بداية، قولي عن نفسك شوي، وش اللي تحب تسويه بوقت فراغك؟'
-      : "Hello! I'm Misbar, your career coach. Let's get to know you better to discover your strengths and passion. To start, tell me a bit about yourself - what do you enjoy doing in your free time?";
+      ? 'حياك الله! أنا سند، مستشارك المهني. خلنا نتعرف عليك أكثر عشان نكتشف نقاط قوتك وشغفك. بداية، قولي عن نفسك شوي، وش اللي تحب تسويه بوقت فراغك؟'
+      : "Hello! I'm Sanad, your career coach. Let's get to know you better to discover your strengths and passion. To start, tell me a bit about yourself - what do you enjoy doing in your free time?";
 
     const initialMessage: Message = {
       id: crypto.randomUUID(),
