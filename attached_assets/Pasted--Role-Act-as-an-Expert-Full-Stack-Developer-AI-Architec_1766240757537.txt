@@ -1,0 +1,64 @@
+# Role
+Act as an Expert Full-Stack Developer & AI Architect. Build a sophisticated, scalable Web Application called "Sanad - Career Discovery" (سند).
+
+# Project Overview
+A dual-interface application:
+1.  **Public Interface:** A chat-based career coach (AI) for anonymous users (No Login required).
+2.  **Admin Dashboard:** A secured area for the owner (`m.basheri@gmail.com`) to view analytics and modify the AI's System Prompt dynamically.
+
+# 1. Technical Stack (Serverless & Scalable)
+- **Frontend:** React + Vite + Tailwind CSS (RTL Support).
+- **Backend:** Vercel Serverless Functions (Node.js).
+- **Database:** Supabase (PostgreSQL) OR Firebase (Choose the simplest for: storing the System Prompt + Analytics).
+- **AI Engine:** Google Gemini API (`@google/generative-ai`).
+  - **Model:** Strictly use `models/gemini-3-pro-preview`.
+- **Security:** Environment variables for keys.
+
+# 2. Features & Logic
+
+## A. Public User Interface (The Chat)
+- **Access:** Open to everyone. NO Login required.
+- **Session Tracking:** Generate a unique `session_id` (UUID) and store it in `localStorage` to count "Unique Users" without collecting personal data.
+- **The Brain:** The app must NOT have the System Prompt hardcoded. It must fetch the latest `system_instruction` text from the Database on every new chat session.
+
+## B. Admin Dashboard (Protected Route `/admin`)
+- **Authentication:** Implement a secure login mechanism allowing ONLY `m.basheri@gmail.com` to access.
+- **Dashboard Features:**
+  1.  **Live Analytics:**
+      -   Total Unique Users (Count of unique session_ids).
+      -   Total Messages Exchanged.
+      -   Active Users (Last 24h).
+  2.  **"Sanad's Brain" Editor (Prompt CMS):**
+      -   A large Textarea displaying the current System Prompt stored in the DB.
+      -   "Save/Update" button to instantly change how the AI behaves for all future users without redeploying code.
+
+# 3. Backend API Routes
+1.  `POST /api/chat`:
+    -   Input: `{ message, history, session_id }`.
+    -   Logic:
+        1. Fetch the *latest* System Prompt from DB.
+        2. Initialize Gemini (`models/gemini-3-pro-preview`) with that prompt.
+        3. Send message.
+        4. **Log Analytics:** Increment message count & update "Last Active" for this `session_id` in DB.
+    -   Output: AI Response text.
+
+2.  `GET /api/admin/stats`: (Protected) Fetch counts from DB.
+3.  `POST /api/admin/update-prompt`: (Protected) Update the System Prompt string in DB.
+
+# 4. Default Database Seeding (Initial State)
+Ensure the database is initialized with this Default System Prompt:
+"""
+**Role:** You are 'Sanad' (سند), an expert Career Counselor practicing **Mark Savickas' Career Construction Theory**.
+**Tone:** Professional, warm, Saudi dialect.
+**Methodology:**
+1. Role Models. 2. Magazines/Media. 3. Favorite Story. 4. Motto.
+**Output Protocol:**
+- Chat naturally.
+- **TO END:** Output ONLY JSON: { "status": "complete", "strengths": [...], "passion": "...", "career_paths": [...] }
+"""
+
+# 5. Deployment & Env
+- Create a `.env.example` including:
+  - `GEMINI_API_KEY`
+  - `DATABASE_URL` (Supabase/Firebase config)
+  - `ADMIN_EMAIL=m.basheri@gmail.com`
