@@ -1,0 +1,44 @@
+# Role
+Act as a Senior Full-Stack Developer specializing in React, Node.js, and Generative AI integration.
+
+# Context
+We have a Single Page Application (SPA) named "Sanad" (Career Coach) using **React + Vite** (Frontend) and **Google Gemini API** (Backend/Serverless).
+
+# Current Critical Bugs
+1.  **Session Leakage:** The AI "remembers" previous conversations even after the user clicks "New Session" or refreshes.
+2.  **JSON Rendering Issue:** When the AI outputs the final JSON report, the raw JSON code is displayed in the chat bubble instead of triggering the Report UI. Also, the AI returns `null` values if the chat ends early.
+
+# Required Fixes (Implementation Plan)
+
+## 1. Fix Session Management (Frontend Logic)
+Refactor the "New Chat" / "Start" logic in React. It must perform these atomic actions:
+-   **Import:** Use `uuid` library.
+-   **Reset State:** Create a function `startNewSession()` that:
+    1.  Generates a fresh `session_id` (UUID) and saves it to `localStorage`.
+    2.  Sets the messages state array to `[]` (Empty).
+    3.  Sets the history payload (sent to API) to `[]` (Empty).
+-   **API Call:** Ensure the `POST /api/chat` call sends the *current* `history` from the frontend state, NOT relying on any backend global variable.
+
+## 2. Fix Response Handling (Frontend Logic)
+Rewrite the `handleResponse(response)` function in the chat component to intercept the AI output:
+-   **Sanitization:** Strip any Markdown code blocks (e.g., ```json ... ```) from the string.
+-   **Detection:** Use Regex to check if the string contains a valid JSON object.
+-   **Routing:**
+    -   IF `JSON` is detected -> Parse it -> Update `reportData` state -> Show `ReportComponent`. (DO NOT append to chat).
+    -   IF `Text` -> Append to chat messages array.
+
+## 3. Update The AI System Prompt (Backend/Config)
+Rewrite the `system_instruction` sent to Gemini to strictly prevent errors. Use this exact logic:
+
+"""
+**Role:** You are 'Sanad', a Saudi Career Counselor (Savickas Theory).
+**Constraint 1 (Output):** When the conversation ends, output **RAW JSON ONLY**. Do NOT use Markdown formatting (no ```json). Do NOT add text before or after the JSON.
+**Constraint 2 (Incomplete Data):** If the user ends the chat early, **NEVER return null values**. You MUST infer/guess the best possible strengths/passion based on the limited interaction, or use positive placeholders (e.g., 'طموح واعد').
+**Schema:** { "status": "complete", "strengths": [...], "passion": "...", "career_paths": [...], "advice": "..." }
+"""
+
+# Deliverables
+Please provide the corrected code blocks for:
+1.  The **Frontend Session Logic** (React).
+2.  The **Frontend Response Handler** (React).
+3.  The **Backend API Route** (Node.js) showing the stateless implementation.

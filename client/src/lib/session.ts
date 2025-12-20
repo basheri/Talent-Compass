@@ -8,3 +8,13 @@ export function getSessionId(): string {
   }
   return sessionId;
 }
+
+export function generateNewSessionId(): string {
+  const sessionId = crypto.randomUUID();
+  localStorage.setItem(SESSION_KEY, sessionId);
+  return sessionId;
+}
+
+export function clearSession(): void {
+  localStorage.removeItem(SESSION_KEY);
+}

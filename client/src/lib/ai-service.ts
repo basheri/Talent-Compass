@@ -1,11 +1,12 @@
 import type { Message } from './types';
-import { getSessionId } from './session';
+import { getSessionId, generateNewSessionId } from './session';
 
 export function hasApiKey(): boolean {
   return true;
 }
 
 export function clearChatSession(): void {
+  generateNewSessionId();
 }
 
 export async function sendMessage(
