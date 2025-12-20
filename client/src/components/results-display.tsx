@@ -91,7 +91,11 @@ export function ResultsDisplay({ isRtl, result, assessmentData, onRestart }: Res
 
     try {
       const html2pdfModule = await import('html2pdf.js');
-      const html2pdf = html2pdfModule.default;
+      const html2pdf = html2pdfModule.default || html2pdfModule;
+      
+      if (typeof html2pdf !== 'function') {
+        throw new Error('PDF library not available');
+      }
       
       const element = reportRef.current;
       const opt = {

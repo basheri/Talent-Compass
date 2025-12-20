@@ -180,7 +180,7 @@ export default function Home() {
           />
         )}
 
-        {state.step === 'conversation' && state.assessmentData && !generatingResults && (
+        {state.step === 'conversation' && state.assessmentData && !generatingResults && !error && (
           <Conversation
             isRtl={state.isRtl}
             messages={state.messages}
@@ -198,20 +198,30 @@ export default function Home() {
           </div>
         )}
 
-        {error && !generatingResults && state.step === 'conversation' && (
-          <div className="max-w-2xl mx-auto py-8 px-4 text-center" data-testid="error-display">
-            <div className="p-6 rounded-lg bg-destructive/10 text-destructive">
-              <p className="font-medium mb-2">{labels.errorTitle}</p>
-              <p className="text-sm mb-4">{error}</p>
-              <Button
-                onClick={() => setError(null)}
-                variant="destructive"
-                data-testid="button-dismiss-error"
-              >
-                {labels.tryAgain}
-              </Button>
+        {error && !generatingResults && state.step === 'conversation' && state.assessmentData && (
+          <>
+            <Conversation
+              isRtl={state.isRtl}
+              messages={state.messages}
+              assessmentData={state.assessmentData}
+              language={state.language}
+              onAddMessage={handleAddMessage}
+              onFinish={handleFinishConversation}
+            />
+            <div className="max-w-2xl mx-auto py-4 px-4 text-center" data-testid="error-display">
+              <div className="p-4 rounded-lg bg-destructive/10 text-destructive">
+                <p className="text-sm mb-3">{error}</p>
+                <Button
+                  onClick={() => setError(null)}
+                  variant="outline"
+                  size="sm"
+                  data-testid="button-dismiss-error"
+                >
+                  {labels.tryAgain}
+                </Button>
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         {state.step === 'results' && state.result && state.assessmentData && (
