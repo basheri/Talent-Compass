@@ -141,10 +141,15 @@ async function sendGeminiMessage(
 ): Promise<string> {
   const systemPrompt = language === 'ar' ? SYSTEM_PROMPT_AR : SYSTEM_PROMPT_EN;
 
-  const contents = messages.map(m => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }],
-  }));
+  const contents: { role: string; parts: { text: string }[] }[] = [];
+  
+  for (const m of messages) {
+    const role = m.role === 'assistant' ? 'model' : 'user';
+    contents.push({
+      role,
+      parts: [{ text: m.content }],
+    });
+  }
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,

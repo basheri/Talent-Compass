@@ -6,7 +6,7 @@ import { ResultsDisplay } from '@/components/results-display';
 import { SettingsModal } from '@/components/settings-modal';
 import type { AppState, Message, MisbarResult } from '@/lib/types';
 import { STORAGE_KEYS } from '@/lib/types';
-import { hasApiKey } from '@/lib/ai-service';
+import { hasApiKey, getProvider } from '@/lib/ai-service';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
@@ -154,8 +154,8 @@ export default function Home() {
           </p>
           <p data-testid="text-powered-by">
             {state.isRtl
-              ? 'مدعوم بتقنية OpenAI'
-              : 'Powered by OpenAI'}
+              ? `مدعوم بتقنية ${getProvider() === 'gemini' ? 'Google Gemini' : 'OpenAI'}`
+              : `Powered by ${getProvider() === 'gemini' ? 'Google Gemini' : 'OpenAI'}`}
           </p>
         </div>
       </footer>

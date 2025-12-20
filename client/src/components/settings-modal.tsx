@@ -124,8 +124,8 @@ export function SettingsModal({ open, onOpenChange, isRtl }: SettingsModalProps)
         gemini: 'Google Gemini',
       };
 
-  const currentKeyConfigured = selectedProvider === 'openai' ? hasOpenAIKey : hasGeminiKey;
   const currentKeyValue = selectedProvider === 'openai' ? openaiKeyValue : geminiKeyValue;
+  const canSave = currentKeyValue.trim().length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -284,7 +284,7 @@ export function SettingsModal({ open, onOpenChange, isRtl }: SettingsModalProps)
         <DialogFooter>
           <Button 
             onClick={handleSave} 
-            disabled={!currentKeyValue.trim() || saved}
+            disabled={!canSave || saved}
             className="w-full sm:w-auto"
             data-testid="button-save-settings"
           >
