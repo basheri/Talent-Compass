@@ -303,12 +303,21 @@ export function DownloadReportButton({ data, isRtl }: DownloadReportButtonProps)
     try {
       setIsGenerating(true);
       
-      const blob = await pdf(<SanadReportPDF data={data} isRtl={isRtl} />).toBlob();
+      console.log("Starting PDF generation...");
+      const pdfDoc = pdf(<SanadReportPDF data={data} isRtl={isRtl} />);
+      console.log("PDF document created, generating blob...");
+      const blob = await pdfDoc.toBlob();
+      console.log("Blob generated, size:", blob.size);
       
       saveAs(blob, fileName);
+      console.log("PDF saved successfully");
       
-    } catch (error) {
-      console.error("PDF Generation Failed:", error);
+    } catch (error: unknown) {
+      const errorDetails = error instanceof Error 
+        ? { message: error.message, stack: error.stack, name: error.name }
+        : String(error);
+      console.error("PDF Generation Failed - Details:", errorDetails);
+      console.error("Full error object:", error);
       alert(errorMessage);
     } finally {
       setIsGenerating(false);
