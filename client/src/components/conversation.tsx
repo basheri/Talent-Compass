@@ -8,6 +8,45 @@ import ReactMarkdown from 'react-markdown';
 import type { Message, OPAResult } from '@/lib/types';
 import { tryParseResult, stripInternalMonologue } from '@/lib/types';
 import { sendMessage } from '@/lib/ai-service';
+import { useToast } from '@/hooks/use-toast';
+
+const TEST_PASSPHRASE = import.meta.env.VITE_TEST_PASSPHRASE || '';
+
+const MOCK_RESULT_AR: OPAResult = {
+  status: 'complete',
+  strengths: [
+    'التفكير الاستراتيجي',
+    'القدرة على التحليل العميق',
+    'مهارات التواصل الفعال',
+    'الإبداع في حل المشكلات',
+  ],
+  passion: 'لديك شغف عميق بإحداث تأثير إيجابي في حياة الآخرين من خلال تقديم الاستشارات والتوجيه. هذا الدافع الداخلي يجعلك تبحث دائماً عن طرق جديدة للتعلم والنمو.',
+  career_paths: [
+    'المسار الآمن: مستشار تطوير مهني في شركة استشارات معتمدة - بناء خبرة ثابتة مع دخل مستقر',
+    'مسار النمو: إطلاق منصة تدريب رقمية خاصة - استثمار في بناء علامتك التجارية الشخصية',
+    'المسار الفريد: الجمع بين الذكاء الاصطناعي والتوجيه المهني - ريادة مجال جديد في المنطقة',
+  ],
+  reliability_score: 87,
+  advice: 'بناءً على تحليل محادثتنا، أنصحك بالبدء بتطوير حضورك الرقمي أولاً. ابدأ بكتابة محتوى قيّم على LinkedIn، ثم انتقل تدريجياً لتقديم استشارات مجانية لبناء سمعتك. خلال 6 أشهر، ستكون لديك قاعدة عملاء كافية للانطلاق بشكل مستقل.',
+};
+
+const MOCK_RESULT_EN: OPAResult = {
+  status: 'complete',
+  strengths: [
+    'Strategic Thinking',
+    'Deep Analytical Skills',
+    'Effective Communication',
+    'Creative Problem Solving',
+  ],
+  passion: 'You have a deep passion for making a positive impact on others\' lives through consulting and guidance. This inner drive makes you constantly seek new ways to learn and grow.',
+  career_paths: [
+    'Safe Path: Career Development Consultant at an established consulting firm - build steady experience with stable income',
+    'Growth Path: Launch your own digital coaching platform - invest in building your personal brand',
+    'Unique Path: Combine AI with career coaching - pioneer a new field in your region',
+  ],
+  reliability_score: 87,
+  advice: 'Based on our conversation analysis, I recommend starting by developing your digital presence first. Begin by writing valuable content on LinkedIn, then gradually move to offering free consultations to build your reputation. Within 6 months, you will have a sufficient client base to launch independently.',
+};
 
 interface ConversationProps {
   isRtl: boolean;
@@ -29,6 +68,7 @@ export function Conversation({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -39,6 +79,32 @@ export function Conversation({
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
+
+    // Check for test passphrase
+    if (TEST_PASSPHRASE && input.trim() === TEST_PASSPHRASE) {
+      // Add a system message to show test mode was triggered
+      const testModeMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: isRtl 
+          ? '**وضع الاختبار** - جاري توليد تقرير تجريبي...' 
+          : '**Test Mode** - Generating sample report...',
+        timestamp: new Date(),
+      };
+      onAddMessage(testModeMessage);
+      setInput('');
+      
+      toast({
+        title: isRtl ? 'وضع الاختبار' : 'Test Mode',
+        description: isRtl 
+          ? 'تم تفعيل وضع الاختبار - هذا تقرير تجريبي' 
+          : 'Test mode activated - this is a sample report',
+      });
+      
+      const mockResult = language === 'ar' ? MOCK_RESULT_AR : MOCK_RESULT_EN;
+      onComplete(mockResult);
+      return;
+    }
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
