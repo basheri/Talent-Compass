@@ -1,4 +1,6 @@
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import * as fs from 'fs';
+import * as path from 'path';
 
 interface OPAResult {
   status: 'complete';
@@ -22,6 +24,54 @@ function escapeHtml(text: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+function loadLocalFont(): string {
+  const fontsDir = path.join(process.cwd(), 'server', 'fonts');
+  
+  const regularPath = path.join(fontsDir, 'Cairo-Regular.ttf');
+  const boldPath = path.join(fontsDir, 'Cairo-Bold.ttf');
+  const semiBoldPath = path.join(fontsDir, 'Cairo-SemiBold.ttf');
+  
+  let fontFace = '';
+  
+  if (fs.existsSync(regularPath)) {
+    const regularBase64 = fs.readFileSync(regularPath).toString('base64');
+    fontFace += `
+      @font-face {
+        font-family: 'Cairo';
+        src: url(data:font/truetype;base64,${regularBase64}) format('truetype');
+        font-weight: 400;
+        font-style: normal;
+      }
+    `;
+  }
+  
+  if (fs.existsSync(semiBoldPath)) {
+    const semiBoldBase64 = fs.readFileSync(semiBoldPath).toString('base64');
+    fontFace += `
+      @font-face {
+        font-family: 'Cairo';
+        src: url(data:font/truetype;base64,${semiBoldBase64}) format('truetype');
+        font-weight: 600;
+        font-style: normal;
+      }
+    `;
+  }
+  
+  if (fs.existsSync(boldPath)) {
+    const boldBase64 = fs.readFileSync(boldPath).toString('base64');
+    fontFace += `
+      @font-face {
+        font-family: 'Cairo';
+        src: url(data:font/truetype;base64,${boldBase64}) format('truetype');
+        font-weight: 700;
+        font-style: normal;
+      }
+    `;
+  }
+  
+  return fontFace;
 }
 
 function generateHtmlReport(data: OPAResult, isRtl: boolean): string {
@@ -89,15 +139,17 @@ function generateHtmlReport(data: OPAResult, isRtl: boolean): string {
 
   const pathsHtml = data.career_paths
     .map(
-      (path, index) => `
+      (p, index) => `
       <div class="path-item">
         <div class="path-number">${index + 1}</div>
-        <div class="path-text">${escapeHtml(path)}</div>
+        <div class="path-text">${escapeHtml(p)}</div>
         <span class="path-badge ${getPathBadgeClass(index)}">${getPathLabel(index)}</span>
       </div>
     `
     )
     .join('');
+
+  const fontFace = loadLocalFont();
 
   return `<!DOCTYPE html>
 <html lang="${isRtl ? 'ar' : 'en'}" dir="${isRtl ? 'rtl' : 'ltr'}">
@@ -106,7 +158,7 @@ function generateHtmlReport(data: OPAResult, isRtl: boolean): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${labels.title}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+    ${fontFace}
 
     * {
       margin: 0;
@@ -357,17 +409,18 @@ function generateHtmlReport(data: OPAResult, isRtl: boolean): string {
 export async function generatePdf(options: GeneratePdfOptions): Promise<Buffer> {
   const { data, isRtl } = options;
   
+  const browserlessApiKey = process.env.BROWSERLESS_API_KEY;
+  
+  if (!browserlessApiKey) {
+    throw new Error('BROWSERLESS_API_KEY environment variable is not set');
+  }
+  
+  const browserWSEndpoint = `wss://chrome.browserless.io?token=${browserlessApiKey}`;
+  
   const html = generateHtmlReport(data, isRtl);
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--font-render-hinting=none',
-    ],
+  const browser = await puppeteer.connect({
+    browserWSEndpoint,
   });
 
   try {
@@ -401,6 +454,6 @@ export async function generatePdf(options: GeneratePdfOptions): Promise<Buffer> 
 
     return Buffer.from(pdfBuffer);
   } finally {
-    await browser.close();
+    await browser.disconnect();
   }
 }
