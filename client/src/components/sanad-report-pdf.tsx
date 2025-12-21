@@ -6,14 +6,15 @@ import { FileDown, Loader2 } from 'lucide-react';
 import type { OPAResult } from '@/lib/types';
 
 // Use jsDelivr CDN for reliable font loading - bypasses Replit's local file serving issues
+// Using TTF format which is more compatible with @react-pdf/renderer
 Font.register({
   family: 'Cairo',
-  src: 'https://cdn.jsdelivr.net/npm/@fontsource/cairo@5.0.13/files/cairo-arabic-400-normal.woff'
+  src: 'https://cdn.jsdelivr.net/fontsource/fonts/cairo@latest/arabic-400-normal.ttf'
 });
 
 Font.register({
   family: 'Cairo-Bold',
-  src: 'https://cdn.jsdelivr.net/npm/@fontsource/cairo@5.0.13/files/cairo-arabic-700-normal.woff'
+  src: 'https://cdn.jsdelivr.net/fontsource/fonts/cairo@latest/arabic-700-normal.ttf'
 });
 
 const styles = StyleSheet.create({
