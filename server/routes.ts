@@ -3,6 +3,7 @@ import type { Server } from "http";
 import { GoogleGenAI } from "@google/genai";
 import { setupAuth, isAuthenticated, registerAuthRoutes } from "./replit_integrations/auth";
 import { storage } from "./storage";
+import { generatePdf } from "./pdf.service";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
@@ -250,6 +251,77 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (error) {
       console.error("Update prompt error:", error);
       res.status(500).json({ error: "Failed to update prompt" });
+    }
+  });
+
+  // PDF Export endpoint - Puppeteer-based for perfect Arabic rendering
+  app.post("/api/export-report-pdf", async (req, res) => {
+    try {
+      const { data, isRtl } = req.body;
+
+      if (!data || typeof data !== 'object') {
+        return res.status(400).json({ error: "Report data required" });
+      }
+
+      if (!Array.isArray(data.strengths) || data.strengths.length === 0) {
+        return res.status(400).json({ error: "Strengths must be a non-empty array" });
+      }
+
+      if (!Array.isArray(data.career_paths) || data.career_paths.length === 0) {
+        return res.status(400).json({ error: "Career paths must be a non-empty array" });
+      }
+
+      if (typeof data.passion !== 'string' || !data.passion.trim()) {
+        return res.status(400).json({ error: "Passion must be a non-empty string" });
+      }
+
+      if (typeof data.advice !== 'string' || !data.advice.trim()) {
+        return res.status(400).json({ error: "Advice must be a non-empty string" });
+      }
+
+      const sanitizedStrengths = data.strengths
+        .filter((s: unknown) => typeof s === 'string' && s.trim())
+        .map((s: string) => s.trim());
+
+      const sanitizedCareerPaths = data.career_paths
+        .filter((p: unknown) => typeof p === 'string' && p.trim())
+        .map((p: string) => p.trim());
+
+      if (sanitizedStrengths.length === 0) {
+        return res.status(400).json({ error: "Strengths array has no valid entries after sanitization" });
+      }
+
+      if (sanitizedCareerPaths.length === 0) {
+        return res.status(400).json({ error: "Career paths array has no valid entries after sanitization" });
+      }
+
+      const reliabilityScore = typeof data.reliability_score === 'number' 
+        ? Math.max(0, Math.min(100, data.reliability_score)) 
+        : 0;
+
+      const pdfBuffer = await generatePdf({
+        data: {
+          status: 'complete',
+          strengths: sanitizedStrengths,
+          passion: data.passion.trim(),
+          career_paths: sanitizedCareerPaths,
+          reliability_score: reliabilityScore,
+          advice: data.advice.trim(),
+        },
+        isRtl: isRtl === true,
+      });
+
+      const fileName = isRtl ? 'تقرير-سند.pdf' : 'sanad-report.pdf';
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      const message = error instanceof Error ? error.message : "Failed to generate PDF";
+      res.status(500).json({ error: message });
     }
   });
 
