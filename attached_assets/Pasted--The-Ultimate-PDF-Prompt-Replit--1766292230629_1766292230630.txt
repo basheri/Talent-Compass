@@ -1,0 +1,243 @@
+إليك **البرومبت الكامل والنهائي** (The Ultimate PDF Prompt) المصمم خصيصاً لحل مشاكل بيئة **Replit** (مشاكل تحميل الملفات) ومشاكل **اللغة العربية** (الخطوط المقطعة) دفعة واحدة.
+
+هذا البرومبت يطلب من المبرمج استخدام **روابط خطوط خارجية (CDN)** بدلاً من الملفات المحلية، مما يضمن عمل التقرير في أي بيئة.
+
+انسخ النص الإنجليزي بالكامل:
+
+---
+
+### **Master Prompt: Production-Ready Arabic PDF for Replit**
+
+```markdown
+# Role
+Act as a Senior React Engineer & UI/UX Designer.
+
+# Objective
+Build a robust, crash-proof PDF generation component for the "Sanad" application.
+The solution must specifically address **Replit environment limitations** (static asset loading errors) and **Arabic Typography issues** (RTL layout & font rendering).
+
+# Critical Technical Strategy
+1.  **Font Loading:** Do NOT rely on local file paths (`/public/fonts/...`) as they often fail in cloud IDEs like Replit during runtime. **You MUST use Remote CDN URLs** for the fonts.
+2.  **Layout Engine:** Use `@react-pdf/renderer`.
+3.  **Download Logic:** Use `file-saver` to handle the Blob, ensuring compatibility with mobile browsers (Safari/Chrome on Android).
+
+# 1. Implementation Steps
+
+## Step A: Install Dependencies
+Run: `npm install @react-pdf/renderer file-saver`
+
+## Step B: The Report Document (`src/components/SanadReportPDF.jsx`)
+Create this component with the exact following logic to fetch the "Cairo" font from a reliable CDN.
+
+```jsx
+import React from 'react';
+import { Document, Page, Text, View, StyleSheet, Font, Image } from '@react-pdf/renderer';
+
+// 1. REGISTER FONT FROM CDN (Fixes Replit Loading Issues)
+Font.register({
+  family: 'Cairo',
+  src: '[https://cdn.jsdelivr.net/fontsource/fonts/cairo@latest/arabic-400-normal.ttf](https://cdn.jsdelivr.net/fontsource/fonts/cairo@latest/arabic-400-normal.ttf)'
+});
+
+Font.register({
+  family: 'Cairo-Bold',
+  src: '[https://cdn.jsdelivr.net/fontsource/fonts/cairo@latest/arabic-700-normal.ttf](https://cdn.jsdelivr.net/fontsource/fonts/cairo@latest/arabic-700-normal.ttf)'
+});
+
+// 2. DEFINE STYLES (RTL Optimized)
+const styles = StyleSheet.create({
+  page: {
+    padding: 40,
+    fontFamily: 'Cairo',
+    backgroundColor: '#ffffff',
+  },
+  header: {
+    flexDirection: 'row-reverse', // RTL Header
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: '#10B981', // Emerald-500
+    paddingBottom: 10,
+  },
+  brandTitle: {
+    fontSize: 24,
+    fontFamily: 'Cairo-Bold',
+    color: '#065F46', // Emerald-800
+  },
+  dateText: {
+    fontSize: 10,
+    color: '#6B7280',
+  },
+  section: {
+    marginBottom: 15,
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: '#F9FAFB',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: 'Cairo-Bold',
+    marginBottom: 8,
+    textAlign: 'right', // Align Right for Arabic
+    color: '#059669',
+  },
+  text: {
+    fontSize: 12,
+    textAlign: 'right', // Align Right for Arabic
+    lineHeight: 1.6,
+    color: '#374151',
+  },
+  badgeContainer: {
+    flexDirection: 'row-reverse', // RTL Flow for badges
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 5,
+  },
+  badge: {
+    backgroundColor: '#D1FAE5',
+    color: '#065F46',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    fontSize: 10,
+    fontFamily: 'Cairo-Bold',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 40,
+    right: 40,
+    textAlign: 'center',
+    color: '#9CA3AF',
+    fontSize: 9,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 10,
+  }
+});
+
+// 3. THE COMPONENT
+const SanadReportPDF = ({ data }) => {
+  // Fallback for empty data
+  if (!data) return <Document><Page><Text>No Data</Text></Page></Document>;
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.brandTitle}>سند - تحليلك الاستراتيجي</Text>
+          <Text style={styles.dateText}>{new Date().toLocaleDateString('ar-SA')}</Text>
+        </View>
+
+        {/* Reliability Score */}
+        <View style={{ alignItems: 'center', marginBottom: 20 }}>
+          <Text style={{ fontSize: 30, fontFamily: 'Cairo-Bold', color: '#10B981' }}>
+            {data.reliability_score || 0}%
+          </Text>
+          <Text style={{ fontSize: 10, color: '#6B7280' }}>نسبة الثقة في التحليل</Text>
+        </View>
+
+        {/* Strengths */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>نقاط القوة</Text>
+          <View style={styles.badgeContainer}>
+            {data.strengths?.map((item, index) => (
+              <Text key={index} style={styles.badge}>{item}</Text>
+            ))}
+          </View>
+        </View>
+
+        {/* Passion */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>الشغف والدافع العميق</Text>
+          <Text style={styles.text}>{data.passion}</Text>
+        </View>
+
+        {/* Career Paths */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>المسارات المهنية المقترحة</Text>
+          {data.career_paths?.map((path, idx) => (
+            <Text key={idx} style={[styles.text, { marginBottom: 4 }]}>• {path}</Text>
+          ))}
+        </View>
+
+        {/* Advice */}
+        <View style={[styles.section, { backgroundColor: '#ECFDF5', borderColor: '#10B981', borderWidth: 1 }]}>
+          <Text style={styles.sectionTitle}>النصيحة الاستراتيجية</Text>
+          <Text style={[styles.text, { fontFamily: 'Cairo-Bold' }]}>{data.advice}</Text>
+        </View>
+
+        {/* Footer */}
+        <Text style={styles.footer}>
+          تم إعداد هذا التقرير بواسطة "سند" - المستشار الاستراتيجي
+        </Text>
+      </Page>
+    </Document>
+  );
+};
+
+export default SanadReportPDF;
+
+```
+
+## Step C: The Download Button (`src/components/DownloadReportButton.jsx`)
+
+Implement manual blob handling to ensure mobile compatibility and error visibility.
+
+```jsx
+import React, { useState } from 'react';
+import { pdf } from '@react-pdf/renderer';
+import { saveAs } from 'file-saver';
+import SanadReportPDF from './SanadReportPDF';
+import { Download } from 'lucide-react'; // Optional Icon
+
+const DownloadReportButton = ({ data }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleDownload = async () => {
+    if (!data) return;
+    setLoading(true);
+    try {
+      // Generate Blob
+      const blob = await pdf(<SanadReportPDF data={data} />).toBlob();
+      // Save File
+      saveAs(blob, 'Sanad-Strategic-Report.pdf');
+    } catch (err) {
+      console.error("PDF Generation Error:", err);
+      alert("حدث خطأ أثناء إنشاء ملف PDF. يرجى التحقق من الاتصال بالإنترنت لتحميل الخطوط.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={loading}
+      className={`
+        flex items-center justify-center gap-2 w-full py-3 px-6 rounded-lg font-bold text-white transition-all shadow-md
+        ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-lg'}
+      `}
+    >
+      <Download size={20} />
+      {loading ? 'جاري إعداد التقرير...' : 'تحميل التقرير PDF'}
+    </button>
+  );
+};
+
+export default DownloadReportButton;
+
+```
+
+# Deliverables
+
+1. Integrate the above `SanadReportPDF` component code.
+2. Integrate the `DownloadReportButton` code.
+3. Ensure `npm install` is run for the new packages.
+
+```
+
+```
