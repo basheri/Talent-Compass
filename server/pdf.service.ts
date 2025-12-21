@@ -434,12 +434,15 @@ export async function generatePdf(options: GeneratePdfOptions): Promise<Buffer> 
     });
 
     await page.setContent(html, {
-      waitUntil: ['load', 'networkidle0'],
+      waitUntil: 'domcontentloaded',
+      timeout: 60000,
     });
 
-    await page.evaluateHandle('document.fonts.ready');
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // Wait for fonts to load
+    await page.evaluate(() => document.fonts.ready);
+    
+    // Small delay to ensure rendering is complete
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
