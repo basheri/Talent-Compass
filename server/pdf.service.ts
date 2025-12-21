@@ -423,8 +423,9 @@ export async function generatePdf(options: GeneratePdfOptions): Promise<Buffer> 
     browserWSEndpoint,
   });
 
+  let page = null;
   try {
-    const page = await browser.newPage();
+    page = await browser.newPage();
 
     await page.setViewport({
       width: 794,
@@ -454,6 +455,9 @@ export async function generatePdf(options: GeneratePdfOptions): Promise<Buffer> 
 
     return Buffer.from(pdfBuffer);
   } finally {
-    await browser.disconnect();
+    if (page) {
+      await page.close().catch(() => {});
+    }
+    await browser.close().catch(() => {});
   }
 }
