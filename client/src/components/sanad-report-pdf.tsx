@@ -4,14 +4,20 @@ import { saveAs } from 'file-saver';
 import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
 import type { OPAResult } from '@/lib/types';
-import { CAIRO_REGULAR_BASE64, CAIRO_BOLD_BASE64 } from '@/lib/cairo-fonts';
 
-// Register fonts using embedded base64 data for reliable loading across all environments
+// Use Google Fonts CDN for reliable cross-platform font loading
+// Cairo font from fonts.gstatic.com (Google's font CDN)
 Font.register({
   family: 'Cairo',
   fonts: [
-    { src: CAIRO_REGULAR_BASE64, fontWeight: 'normal' },
-    { src: CAIRO_BOLD_BASE64, fontWeight: 'bold' }
+    { 
+      src: 'https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkvangtZmpQdkhzfH5lkSs2SgRjCAGMQ1z0hOA-a1PiN_Y.ttf',
+      fontWeight: 'normal' 
+    },
+    { 
+      src: 'https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkvangtZmpQdkhzfH5lkSs2SgRjCAGMQ1z0hGA5a1PiN_Y.ttf',
+      fontWeight: 'bold' 
+    }
   ]
 });
 
