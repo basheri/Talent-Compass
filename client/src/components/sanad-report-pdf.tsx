@@ -5,20 +5,15 @@ import { Button } from '@/components/ui/button';
 import { FileDown, Loader2 } from 'lucide-react';
 import type { OPAResult } from '@/lib/types';
 
-// Use Google Fonts CDN for reliable cross-platform font loading
-// Cairo font from fonts.gstatic.com (Google's font CDN)
+// Use jsDelivr CDN for reliable font loading - bypasses Replit's local file serving issues
 Font.register({
   family: 'Cairo',
-  fonts: [
-    { 
-      src: 'https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkvangtZmpQdkhzfH5lkSs2SgRjCAGMQ1z0hOA-a1PiN_Y.ttf',
-      fontWeight: 'normal' 
-    },
-    { 
-      src: 'https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkvangtZmpQdkhzfH5lkSs2SgRjCAGMQ1z0hGA5a1PiN_Y.ttf',
-      fontWeight: 'bold' 
-    }
-  ]
+  src: 'https://cdn.jsdelivr.net/npm/@fontsource/cairo@5.0.13/files/cairo-arabic-400-normal.woff'
+});
+
+Font.register({
+  family: 'Cairo-Bold',
+  src: 'https://cdn.jsdelivr.net/npm/@fontsource/cairo@5.0.13/files/cairo-arabic-700-normal.woff'
 });
 
 const styles = StyleSheet.create({
@@ -40,7 +35,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: 'Cairo-Bold',
     color: '#10B981',
     textAlign: 'right',
   },
@@ -59,7 +54,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'Cairo-Bold',
     color: '#10B981',
     marginBottom: 10,
     textAlign: 'right',
@@ -98,7 +93,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: 'bold',
+    fontFamily: 'Cairo-Bold',
     textAlign: 'center',
     lineHeight: 28,
     marginLeft: 10,
@@ -128,7 +123,7 @@ const styles = StyleSheet.create({
   },
   adviceTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'Cairo-Bold',
     color: '#10B981',
     marginBottom: 10,
     textAlign: 'right',
@@ -138,7 +133,6 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     textAlign: 'right',
     lineHeight: 1.8,
-    fontStyle: 'italic',
   },
   scoreContainer: {
     flexDirection: 'row-reverse',
@@ -151,7 +145,7 @@ const styles = StyleSheet.create({
   },
   scoreValue: {
     fontSize: 36,
-    fontWeight: 'bold',
+    fontFamily: 'Cairo-Bold',
     color: '#10B981',
     marginLeft: 10,
   },

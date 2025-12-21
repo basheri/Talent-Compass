@@ -1,0 +1,69 @@
+# Role
+Act as a Senior React Engineer fixing a critical bug in a Replit environment.
+
+# The Problem
+The PDF download functionality fails with a generic error alert: "عذراً، حدث خطأ أثناء تجهيز الملف".
+**Diagnosis:** This is a classic **Replit Asset Loading Issue**. The `@react-pdf/renderer` library is failing to load the font files (`Cairo-Regular.ttf`) from the `/public` directory because Replit's dev server often mishandles serving static assets for PDF generation during runtime.
+
+# The Definitive Solution (Base64 Embedding)
+Do NOT try to fix the file path string. Instead, we must **embed the font directly into the code as a Base64 string**. This eliminates the network request entirely and guarantees the font loads.
+
+# Task: Refactor `SanadReportPDF.jsx`
+
+## Step 1: Font Registration with Base64
+Replace the current `Font.register` logic with this EXACT approach.
+(I will provide a placeholder for the Base64 string, you must implement the logic to load it or use a CDN URL that strictly returns the TTF).
+
+**Better yet, use a Remote CDN URL** (which is more reliable on Replit than local paths):
+
+```javascript
+import { Font, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+
+// Register font using a RELIABLE public CDN link for Cairo
+// This bypasses Replit's local file serving issues
+Font.register({
+  family: 'Cairo',
+  src: '[https://cdn.jsdelivr.net/npm/@fontsource/cairo@5.0.13/files/cairo-arabic-400-normal.woff](https://cdn.jsdelivr.net/npm/@fontsource/cairo@5.0.13/files/cairo-arabic-400-normal.woff)'
+});
+
+// Also register Bold if needed
+Font.register({
+  family: 'Cairo-Bold',
+  src: '[https://cdn.jsdelivr.net/npm/@fontsource/cairo@5.0.13/files/cairo-arabic-700-normal.woff](https://cdn.jsdelivr.net/npm/@fontsource/cairo@5.0.13/files/cairo-arabic-700-normal.woff)'
+});
+Step 2: Update Styles
+Update the StyleSheet to use these specific font family names:
+
+JavaScript
+
+const styles = StyleSheet.create({
+  page: {
+    fontFamily: 'Cairo', // Default font
+    padding: 30,
+    textAlign: 'right', // Critical for RTL
+  },
+  boldText: {
+    fontFamily: 'Cairo-Bold',
+    fontWeight: 'bold',
+  }
+  // ... rest of your styles
+});
+Step 3: Debugging Logging
+In the DownloadReportButton.jsx, add detailed logging to the catch block to see the real error in the Console, not just the Alert.
+
+JavaScript
+
+} catch (error) {
+  console.error("PDF GENERATION CRITICAL FAILURE:", error);
+  console.error("Error Name:", error.name);
+  console.error("Error Message:", error.message);
+  alert(`Detailed Error: ${error.message}`); // Show specific error to user for now
+}
+Execution
+Modify SanadReportPDF.jsx to use the CDN URLs provided above instead of local paths.
+
+Modify DownloadReportButton.jsx to log the specific error to the console.
+
+Run the app and try downloading.
+
+Why this works: It removes the dependency on Replit's local file system server, which is often the point of failure for react-pdf.
