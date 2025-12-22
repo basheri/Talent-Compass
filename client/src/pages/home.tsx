@@ -130,18 +130,15 @@ export default function Home() {
       // dir prop removed as we handle it globally now
       data-testid="home-page"
     >
-      {/* Beta Corner Ribbon */}
+      {/* Beta Badge */}
       <div
-        className="fixed top-4 z-50"
+        className="fixed top-20 z-50 bg-amber-500 text-white text-xs font-bold py-1.5 px-4 rounded-md shadow-lg"
         style={{ 
-          [state.isRtl ? 'left' : 'right']: '-35px',
-          transform: state.isRtl ? 'rotate(-45deg)' : 'rotate(45deg)'
+          [state.isRtl ? 'left' : 'right']: '16px'
         }}
         data-testid="beta-ribbon"
       >
-        <div className="bg-primary text-primary-foreground text-xs font-bold py-1.5 px-10 shadow-lg text-center">
-          {state.isRtl ? 'تجريبي' : 'Beta'}
-        </div>
+        {state.isRtl ? 'نسخة تجريبية' : 'Beta'}
       </div>
 
       <Header
