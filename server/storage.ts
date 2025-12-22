@@ -1,4 +1,4 @@
-import { 
+import {
   systemPrompts, chatSessions, chatMessages,
   type SystemPrompt, type InsertSystemPrompt,
   type ChatSession, type InsertChatSession,
@@ -11,14 +11,14 @@ export interface IStorage {
   // System Prompts
   getSystemPrompt(language: string): Promise<SystemPrompt | undefined>;
   upsertSystemPrompt(prompt: InsertSystemPrompt & { language: string }): Promise<SystemPrompt>;
-  
+
   // Chat Sessions
   getOrCreateSession(sessionId: string): Promise<ChatSession>;
   updateSessionActivity(sessionId: string): Promise<void>;
-  
+
   // Chat Messages
   logMessage(sessionId: string, role: string): Promise<ChatMessage>;
-  
+
   // Analytics
   getUniqueUsersCount(): Promise<number>;
   getTotalMessagesCount(): Promise<number>;
@@ -100,4 +100,81 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+export class MemStorage implements IStorage {
+  private systemPrompts: Map<string, SystemPrompt>;
+  private chatSessions: Map<string, ChatSession>;
+  private chatMessages: ChatMessage[];
+
+  constructor() {
+    this.systemPrompts = new Map();
+    this.chatSessions = new Map();
+    this.chatMessages = [];
+  }
+
+  async getSystemPrompt(language: string): Promise<SystemPrompt | undefined> {
+    return this.systemPrompts.get(language);
+  }
+
+  async upsertSystemPrompt(prompt: InsertSystemPrompt & { language: string }): Promise<SystemPrompt> {
+    const existing = this.systemPrompts.get(prompt.language);
+    const newPrompt: SystemPrompt = {
+      id: existing?.id ?? Math.random().toString(36).substring(7),
+      language: prompt.language,
+      content: prompt.content,
+      updatedAt: new Date(),
+      updatedBy: prompt.updatedBy ?? null,
+    };
+    this.systemPrompts.set(prompt.language, newPrompt);
+    return newPrompt;
+  }
+
+  async getOrCreateSession(sessionId: string): Promise<ChatSession> {
+    if (!this.chatSessions.has(sessionId)) {
+      this.chatSessions.set(sessionId, {
+        id: sessionId,
+        createdAt: new Date(),
+        lastActiveAt: new Date(),
+      });
+    }
+    return this.chatSessions.get(sessionId)!;
+  }
+
+  async updateSessionActivity(sessionId: string): Promise<void> {
+    const session = this.chatSessions.get(sessionId);
+    if (session) {
+      session.lastActiveAt = new Date();
+    }
+  }
+
+  async logMessage(sessionId: string, role: string): Promise<ChatMessage> {
+    const message: ChatMessage = {
+      id: Math.random().toString(36).substring(7),
+      sessionId,
+      role,
+      createdAt: new Date(),
+    };
+    this.chatMessages.push(message);
+    return message;
+  }
+
+  async getUniqueUsersCount(): Promise<number> {
+    return this.chatSessions.size;
+  }
+
+  async getTotalMessagesCount(): Promise<number> {
+    return this.chatMessages.length;
+  }
+
+  async getActiveUsers24h(): Promise<number> {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    let count = 0;
+    for (const session of this.chatSessions.values()) {
+      if (session.lastActiveAt && session.lastActiveAt > cutoff) {
+        count++;
+      }
+    }
+    return count;
+  }
+}
+
+export const storage = process.env.DATABASE_URL ? new DatabaseStorage() : new MemStorage();

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "@shared/schema";
@@ -5,20 +6,21 @@ import * as schema from "@shared/schema";
 const { Pool } = pg;
 
 if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+  console.warn("DATABASE_URL not set. Falling back to in-memory storage.");
 }
 
-export const pool = new Pool({ 
+export const pool = process.env.DATABASE_URL ? new Pool({ 
   connectionString: process.env.DATABASE_URL,
   connectionTimeoutMillis: 10000,
   idleTimeoutMillis: 30000,
   max: 10,
-});
+}) : null;
 
-pool.on('error', (err) => {
-  console.error('Unexpected database pool error:', err.message);
-});
+if (pool) {
+  pool.on('error', (err) => {
+    console.error('Unexpected database pool error:', err.message);
+  });
+}
 
-export const db = drizzle(pool, { schema });
+// @ts-ignore
+export const db = pool ? drizzle(pool, { schema }) : null;

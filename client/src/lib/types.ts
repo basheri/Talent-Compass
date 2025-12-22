@@ -16,6 +16,25 @@ export interface OPAResult {
 
 export type MisbarResult = OPAResult;
 
+export type JourneyStage = 'outcome' | 'purpose' | 'reality' | 'options' | 'decision' | 'commitment';
+
+export interface DecisionData {
+  primary_direction: string;
+  reasons: string[];
+  stop_list: string[];
+  plan_90_days: string[];
+  abort_signal: string;
+  opportunity_cost: string;
+}
+
+export interface StageMetadata {
+  stage: JourneyStage;
+  completed: boolean;
+  progress: number;
+  missing_info?: string;
+  decision_data?: DecisionData;
+}
+
 export interface AppState {
   step: 'welcome' | 'conversation' | 'results';
   messages: Message[];
@@ -23,6 +42,9 @@ export interface AppState {
   isLoading: boolean;
   isRtl: boolean;
   language: 'en' | 'ar';
+  currentStage: JourneyStage;
+  stageProgress: number;
+  decisionData: DecisionData | null;
 }
 
 export const STORAGE_KEYS = {
@@ -40,8 +62,27 @@ export function sanitizeJsonResponse(content: string): string {
   return cleaned.trim();
 }
 
+export function extractMetadata(content: string): { cleanContent: string; metadata: StageMetadata | null } {
+  const metadataRegex = /\[METADATA:\s*(\{[\s\S]*?\})\s*\]/;
+  const match = content.match(metadataRegex);
+
+  if (match) {
+    try {
+      const metadata = JSON.parse(match[1]);
+      const cleanContent = content.replace(metadataRegex, '').trim();
+      return { cleanContent, metadata };
+    } catch (e) {
+      console.error("Failed to parse metadata JSON", e);
+    }
+  }
+
+  return { cleanContent: content, metadata: null };
+}
+
 export function stripInternalMonologue(content: string): string {
   let cleaned = content;
+  // Remove metadata block first if handled by extractMetadata, but just in case:
+  cleaned = cleaned.replace(/\[METADATA:\s*\{[\s\S]*?\}\s*\]/g, '');
   cleaned = cleaned.replace(/^(THOUGHT|PLAN|ANALYSIS|تفكير|تحليل|خطة)[:\s][\s\S]*?(?=\n\n|\n[A-Z]|$)/gim, '');
   cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, '');
   cleaned = cleaned.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
@@ -53,13 +94,13 @@ export function stripInternalMonologue(content: string): string {
 export function tryParseResult(content: string): OPAResult | null {
   try {
     const sanitized = sanitizeJsonResponse(content);
-    
+
     const jsonRegex = /\{\s*"status"\s*:\s*"complete"[\s\S]*?\}/;
     const jsonMatch = sanitized.match(jsonRegex);
     if (!jsonMatch) {
       const fallbackMatch = sanitized.match(/\{[\s\S]*"status"\s*:\s*"complete"[\s\S]*\}/);
       if (!fallbackMatch) return null;
-      
+
       try {
         const parsed = JSON.parse(fallbackMatch[0]);
         return validateAndNormalize(parsed);
@@ -67,7 +108,7 @@ export function tryParseResult(content: string): OPAResult | null {
         return null;
       }
     }
-    
+
     const parsed = JSON.parse(jsonMatch[0]);
     return validateAndNormalize(parsed);
   } catch {
@@ -77,16 +118,16 @@ export function tryParseResult(content: string): OPAResult | null {
 
 function validateAndNormalize(parsed: any): OPAResult | null {
   if (parsed.status !== 'complete') return null;
-  
-  const strengths = Array.isArray(parsed.strengths) && parsed.strengths.length > 0 
-    ? parsed.strengths.filter((s: any) => s != null) 
+
+  const strengths = Array.isArray(parsed.strengths) && parsed.strengths.length > 0
+    ? parsed.strengths.filter((s: any) => s != null)
     : ['طموح واعد', 'إرادة قوية'];
   const passion = parsed.passion || 'شغف بتحقيق الذات والنمو المستمر';
-  const career_paths = Array.isArray(parsed.career_paths) && parsed.career_paths.length > 0 
-    ? parsed.career_paths.filter((p: any) => p != null) 
+  const career_paths = Array.isArray(parsed.career_paths) && parsed.career_paths.length > 0
+    ? parsed.career_paths.filter((p: any) => p != null)
     : ['مسار آمن', 'مسار نمو سريع'];
-  const reliability_score = typeof parsed.reliability_score === 'number' 
-    ? parsed.reliability_score 
+  const reliability_score = typeof parsed.reliability_score === 'number'
+    ? parsed.reliability_score
     : 70;
   const advice = parsed.advice || 'ابدأ بخطوة صغيرة اليوم نحو هدفك الكبير';
 

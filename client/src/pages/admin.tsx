@@ -1,211 +1,122 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/use-auth';
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Users, MessageSquare, Activity, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { APP_CONSTANTS } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import { Users, MessageSquare, Clock, Save, LogOut } from 'lucide-react';
 
-interface Stats {
+interface AdminStats {
   uniqueUsers: number;
   totalMessages: number;
   activeUsers24h: number;
 }
 
-interface Prompts {
-  ar: string;
-  en: string;
-}
-
 export default function Admin() {
-  const { user, isLoading: authLoading, isAuthenticated, logout } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isRtl, setIsRtl] = useState(false);
 
-  const [arPrompt, setArPrompt] = useState('');
-  const [enPrompt, setEnPrompt] = useState('');
-
-  const { data: stats, isLoading: statsLoading } = useQuery<Stats>({
-    queryKey: ['/api/admin/stats'],
-    enabled: isAuthenticated,
-  });
-
-  const { data: prompts, isLoading: promptsLoading } = useQuery<Prompts>({
-    queryKey: ['/api/admin/prompts'],
-    enabled: isAuthenticated,
-  });
+  const labels = isRtl ? APP_CONSTANTS.ADMIN.AR : APP_CONSTANTS.ADMIN.EN;
 
   useEffect(() => {
-    if (prompts) {
-      setArPrompt(prompts.ar);
-      setEnPrompt(prompts.en);
-    }
-  }, [prompts]);
+    // Check language from localStorage
+    const savedLang = localStorage.getItem('opa_language');
+    setIsRtl(savedLang === 'ar');
 
-  const updatePromptMutation = useMutation({
-    mutationFn: async ({ language, content }: { language: string; content: string }) => {
-      const response = await fetch('/api/admin/prompts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ language, content }),
-      });
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await fetch('/api/admin/stats');
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update prompt');
+        throw new Error('Failed to fetch stats');
       }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/prompts'] });
-      toast({ title: 'Success', description: 'Prompt updated successfully' });
-    },
-    onError: (error: Error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    },
-  });
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      toast({ title: 'Unauthorized', description: 'Please log in to access admin panel', variant: 'destructive' });
-      setTimeout(() => {
-        window.location.href = '/api/login';
-      }, 500);
+      const data = await response.json();
+      setStats(data);
+    } catch (err) {
+      console.error('Failed to fetch admin stats:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsLoading(false);
     }
-  }, [authLoading, isAuthenticated, toast]);
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background" data-testid="admin-loading">
-        <div className="text-muted-foreground">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-background" data-testid="admin-page">
-      <header className="border-b bg-card">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold" data-testid="text-admin-title">Admin Dashboard</h1>
-            <span className="text-sm text-muted-foreground" data-testid="text-admin-subtitle">Sanad Control Panel</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground" data-testid="text-user-email">{user?.email}</span>
-            <Button variant="outline" size="sm" onClick={() => logout()} data-testid="button-logout">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
+    <div className="min-h-screen bg-background" dir={isRtl ? 'rtl' : 'ltr'}>
+      <header className="border-b py-4 px-6">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-primary">{labels.title}</h1>
+          <Button variant="ghost" onClick={() => window.location.href = '/'}>
+            <ArrowLeft className={`h-4 w-4 ${isRtl ? 'ml-2 rotate-180' : 'mr-2'}`} />
+            {isRtl ? 'العودة' : 'Back'}
+          </Button>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card data-testid="card-unique-users">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
-              <CardTitle className="text-sm font-medium">Unique Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-unique-users-count">
-                {statsLoading ? '...' : stats?.uniqueUsers || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">Total unique sessions</p>
-            </CardContent>
-          </Card>
+      <main className="max-w-6xl mx-auto py-8 px-6">
+        {isLoading && (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <span className="ml-3 text-muted-foreground">{labels.loading}</span>
+          </div>
+        )}
 
-          <Card data-testid="card-total-messages">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
-              <CardTitle className="text-sm font-medium">Total Messages</CardTitle>
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-total-messages-count">
-                {statsLoading ? '...' : stats?.totalMessages || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">All messages exchanged</p>
-            </CardContent>
-          </Card>
+        {error && (
+          <div className="flex flex-col items-center justify-center py-20 text-destructive">
+            <AlertCircle className="h-12 w-12 mb-4" />
+            <p className="text-lg font-medium">{labels.error}</p>
+            <p className="text-sm text-muted-foreground mt-2">{error}</p>
+            <Button variant="outline" onClick={fetchStats} className="mt-4">
+              {isRtl ? 'إعادة المحاولة' : 'Retry'}
+            </Button>
+          </div>
+        )}
 
-          <Card data-testid="card-active-users">
-            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
-              <CardTitle className="text-sm font-medium">Active (24h)</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-active-users-count">
-                {statsLoading ? '...' : stats?.activeUsers24h || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">Users in last 24 hours</p>
-            </CardContent>
-          </Card>
-        </div>
+        {stats && !isLoading && !error && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Unique Users */}
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {labels.uniqueUsers}
+                </CardTitle>
+                <Users className="h-5 w-5 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-4xl font-bold">{stats.uniqueUsers}</div>
+              </CardContent>
+            </Card>
 
-        <Card data-testid="card-prompt-editor">
-          <CardHeader>
-            <CardTitle>Sanad's Brain (System Prompt Editor)</CardTitle>
-            <CardDescription>
-              Edit the AI's behavior and personality. Changes take effect immediately for all new conversations.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="ar">
-              <TabsList className="mb-4">
-                <TabsTrigger value="ar" data-testid="tab-arabic">Arabic (العربية)</TabsTrigger>
-                <TabsTrigger value="en" data-testid="tab-english">English</TabsTrigger>
-              </TabsList>
+            {/* Total Messages */}
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {labels.totalMessages}
+                </CardTitle>
+                <MessageSquare className="h-5 w-5 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-4xl font-bold">{stats.totalMessages}</div>
+              </CardContent>
+            </Card>
 
-              <TabsContent value="ar">
-                <div className="space-y-4" dir="rtl">
-                  <Textarea
-                    value={arPrompt}
-                    onChange={(e) => setArPrompt(e.target.value)}
-                    placeholder="System prompt in Arabic..."
-                    className="min-h-[400px] font-mono text-sm"
-                    disabled={promptsLoading}
-                    data-testid="textarea-arabic-prompt"
-                  />
-                  <Button
-                    onClick={() => updatePromptMutation.mutate({ language: 'ar', content: arPrompt })}
-                    disabled={updatePromptMutation.isPending}
-                    data-testid="button-save-arabic"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    {updatePromptMutation.isPending ? 'Saving...' : 'Save Arabic Prompt'}
-                  </Button>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="en">
-                <div className="space-y-4">
-                  <Textarea
-                    value={enPrompt}
-                    onChange={(e) => setEnPrompt(e.target.value)}
-                    placeholder="System prompt in English..."
-                    className="min-h-[400px] font-mono text-sm"
-                    disabled={promptsLoading}
-                    data-testid="textarea-english-prompt"
-                  />
-                  <Button
-                    onClick={() => updatePromptMutation.mutate({ language: 'en', content: enPrompt })}
-                    disabled={updatePromptMutation.isPending}
-                    data-testid="button-save-english"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    {updatePromptMutation.isPending ? 'Saving...' : 'Save English Prompt'}
-                  </Button>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+            {/* Active Users 24h */}
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {labels.activeUsers24h}
+                </CardTitle>
+                <Activity className="h-5 w-5 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-4xl font-bold text-green-600">{stats.activeUsers24h}</div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </main>
     </div>
   );

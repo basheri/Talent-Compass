@@ -5,6 +5,7 @@ import { Conversation } from '@/components/conversation';
 import { ResultsDisplay } from '@/components/results-display';
 import type { AppState, Message, OPAResult } from '@/lib/types';
 import { STORAGE_KEYS } from '@/lib/types';
+import { APP_CONSTANTS } from '@/lib/constants';
 import { clearChatSession } from '@/lib/ai-service';
 import { useToast } from '@/hooks/use-toast';
 
@@ -28,11 +29,11 @@ const MOCK_RESULT: OPAResult = {
 
 export default function Home() {
   const { toast } = useToast();
-  
+
   // Check for test mode via URL parameter
   const urlParams = new URLSearchParams(window.location.search);
   const isTestMode = urlParams.get('test') === 'pdf';
-  
+
   const [state, setState] = useState<AppState>({
     step: isTestMode ? 'results' : 'welcome',
     messages: [],
@@ -40,6 +41,9 @@ export default function Home() {
     isLoading: false,
     isRtl: true,
     language: 'ar',
+    currentStage: 'outcome',
+    stageProgress: 0,
+    decisionData: null,
   });
 
   useEffect(() => {
@@ -52,6 +56,12 @@ export default function Home() {
       }));
     }
   }, []);
+
+  // Update document direction globally
+  useEffect(() => {
+    document.documentElement.dir = state.isRtl ? 'rtl' : 'ltr';
+    document.documentElement.lang = state.language;
+  }, [state.isRtl, state.language]);
 
   const toggleLanguage = () => {
     setState(prev => {
@@ -67,8 +77,8 @@ export default function Home() {
 
   const handleStartJourney = () => {
     const initialGreeting = state.isRtl
-      ? 'مرحباً! أنا سند، مستشارك الاستراتيجي. أنا هنا لأساعدك في اكتشاف نقاط قوتك الخفية ورسم مسارك المهني. أخبرني... ما هو الهدف أو التحول الذي تسعى لتحقيقه في حياتك المهنية؟'
-      : "Hello! I'm Sanad, your Elite Strategic Career Consultant. I'm here to help you discover your hidden strengths and chart your career path. Tell me... what goal or transformation are you seeking in your career?";
+      ? APP_CONSTANTS.GREETING.AR
+      : APP_CONSTANTS.GREETING.EN;
 
     const initialMessage: Message = {
       id: crypto.randomUUID(),
@@ -98,7 +108,7 @@ export default function Home() {
 
   const handleApiError = (errorMessage: string) => {
     toast({
-      title: state.isRtl ? 'حدث خطأ' : 'Error',
+      title: state.isRtl ? APP_CONSTANTS.LABELS.ERROR_TITLE.AR : APP_CONSTANTS.LABELS.ERROR_TITLE.EN,
       description: errorMessage,
       variant: 'destructive',
     });
@@ -115,14 +125,14 @@ export default function Home() {
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen bg-gradient-to-b from-emerald-50/50 to-white dark:from-gray-900 dark:to-gray-950"
-      dir={state.isRtl ? 'rtl' : 'ltr'}
+      // dir prop removed as we handle it globally now
       data-testid="home-page"
     >
-      <Header 
-        isRtl={state.isRtl} 
-        onToggleLanguage={toggleLanguage} 
+      <Header
+        isRtl={state.isRtl}
+        onToggleLanguage={toggleLanguage}
       />
 
       <main className="pb-16">
@@ -141,6 +151,15 @@ export default function Home() {
             onAddMessage={handleAddMessage}
             onComplete={handleComplete}
             onApiError={handleApiError}
+            currentStage={state.currentStage}
+            onUpdateStage={(stage, progress, decisionData) => {
+              setState(prev => ({
+                ...prev,
+                currentStage: stage,
+                stageProgress: progress,
+                decisionData: decisionData ?? prev.decisionData,
+              }));
+            }}
           />
         )}
 
@@ -149,6 +168,7 @@ export default function Home() {
             isRtl={state.isRtl}
             result={state.result}
             onRestart={handleRestart}
+            decisionData={state.decisionData}
           />
         )}
       </main>
@@ -157,13 +177,13 @@ export default function Home() {
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <p data-testid="text-privacy-notice">
             {state.isRtl
-              ? 'جميع البيانات تبقى في متصفحك ولا يتم مشاركتها'
-              : 'All data stays in your browser and is never shared'}
+              ? APP_CONSTANTS.LABELS.PRIVACY.AR
+              : APP_CONSTANTS.LABELS.PRIVACY.EN}
           </p>
           <p data-testid="text-powered-by">
             {state.isRtl
-              ? 'مدعوم بتقنية Google Gemini'
-              : 'Powered by Google Gemini'}
+              ? APP_CONSTANTS.LABELS.POWERED_BY.AR
+              : APP_CONSTANTS.LABELS.POWERED_BY.EN}
           </p>
         </div>
       </footer>

@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { 
+import {
   Star,
   Heart,
   Compass,
@@ -10,49 +10,50 @@ import {
   RefreshCw,
   TrendingUp
 } from 'lucide-react';
-import type { OPAResult } from '@/lib/types';
+import type { OPAResult, DecisionData } from '@/lib/types';
 import { DownloadReportButton } from './sanad-report-pdf';
 
 interface ResultsDisplayProps {
   isRtl: boolean;
   result: OPAResult;
   onRestart: () => void;
+  decisionData?: DecisionData | null;
 }
 
-export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps) {
+export function ResultsDisplay({ isRtl, result, onRestart, decisionData }: ResultsDisplayProps) {
   const labels = isRtl
     ? {
-        title: 'تحليلك الاستراتيجي',
-        subtitle: 'نتائج المستشار الاستراتيجي',
-        exportPdf: 'تحميل التقرير PDF',
-        startNew: 'بدء جلسة جديدة',
-        strengths: 'نقاط القوة',
-        passion: 'الشغف والدافع العميق',
-        careerPaths: 'المسارات المهنية المقترحة',
-        advice: 'النصيحة الاستراتيجية',
-        reliabilityScore: 'نسبة الثقة',
-        preparedBy: 'تم إعداد هذا بواسطة سند - المستشار الاستراتيجي',
-        generatedOn: 'تاريخ الإعداد',
-        safeRoute: 'المسار الآمن',
-        aggressiveRoute: 'مسار النمو السريع',
-        blueOcean: 'المسار الفريد',
-      }
+      title: 'تحليلك الاستراتيجي',
+      subtitle: 'نتائج المستشار الاستراتيجي',
+      exportPdf: 'تحميل التقرير PDF',
+      startNew: 'بدء جلسة جديدة',
+      strengths: 'نقاط القوة',
+      passion: 'الشغف والدافع العميق',
+      careerPaths: 'المسارات المهنية المقترحة',
+      advice: 'النصيحة الاستراتيجية',
+      reliabilityScore: 'نسبة الثقة',
+      preparedBy: 'تم إعداد هذا بواسطة سند - المستشار الاستراتيجي',
+      generatedOn: 'تاريخ الإعداد',
+      safeRoute: 'المسار الآمن',
+      aggressiveRoute: 'مسار النمو السريع',
+      blueOcean: 'المسار الفريد',
+    }
     : {
-        title: 'Your Strategic Analysis',
-        subtitle: 'Elite Career Consultant Results',
-        exportPdf: 'Download PDF Report',
-        startNew: 'Start New Session',
-        strengths: 'Your Strengths',
-        passion: 'Your Deep Passion & Drive',
-        careerPaths: 'Recommended Career Paths',
-        advice: 'Strategic Advice',
-        reliabilityScore: 'Confidence Score',
-        preparedBy: 'Prepared by Sanad - Elite Strategic Consultant',
-        generatedOn: 'Generated on',
-        safeRoute: 'Safe Route',
-        aggressiveRoute: 'Aggressive Growth',
-        blueOcean: 'Blue Ocean Niche',
-      };
+      title: 'Your Strategic Analysis',
+      subtitle: 'Elite Career Consultant Results',
+      exportPdf: 'Download PDF Report',
+      startNew: 'Start New Session',
+      strengths: 'Your Strengths',
+      passion: 'Your Deep Passion & Drive',
+      careerPaths: 'Recommended Career Paths',
+      advice: 'Strategic Advice',
+      reliabilityScore: 'Confidence Score',
+      preparedBy: 'Prepared by Sanad - Elite Strategic Consultant',
+      generatedOn: 'Generated on',
+      safeRoute: 'Safe Route',
+      aggressiveRoute: 'Aggressive Growth',
+      blueOcean: 'Blue Ocean Niche',
+    };
 
   const currentDate = new Date().toLocaleDateString(isRtl ? 'ar-SA' : 'en-US', {
     year: 'numeric',
@@ -99,12 +100,12 @@ export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps
               <RefreshCw className="h-4 w-4 me-2" />
               {labels.startNew}
             </Button>
-            <DownloadReportButton data={result} isRtl={isRtl} />
+            <DownloadReportButton data={result} isRtl={isRtl} decisionData={decisionData} />
           </div>
         </div>
 
-        <div 
-          className="space-y-6 bg-background p-6" 
+        <div
+          className="space-y-6 bg-background p-6"
           data-testid="report-content"
           style={{ direction: isRtl ? 'rtl' : 'ltr' }}
         >
@@ -134,9 +135,9 @@ export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
               {result.strengths.map((strength, index) => (
-                <Badge 
-                  key={index} 
-                  variant="default" 
+                <Badge
+                  key={index}
+                  variant="default"
                   className="text-sm py-1 px-3"
                   data-testid={`badge-strength-${index}`}
                 >
@@ -181,9 +182,9 @@ export function ResultsDisplay({ isRtl, result, onRestart }: ResultsDisplayProps
                     <p className="font-medium" data-testid={`text-path-${index}`}>{path}</p>
                   </div>
                   <Badge variant={getPathVariant(index)} className="text-xs">
-                    {index === 0 ? (isRtl ? 'آمن' : 'Safe') : 
-                     index === 1 ? (isRtl ? 'نمو' : 'Growth') : 
-                     (isRtl ? 'فريد' : 'Unique')}
+                    {index === 0 ? (isRtl ? 'آمن' : 'Safe') :
+                      index === 1 ? (isRtl ? 'نمو' : 'Growth') :
+                        (isRtl ? 'فريد' : 'Unique')}
                   </Badge>
                 </div>
               ))}

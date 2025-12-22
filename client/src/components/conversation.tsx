@@ -5,10 +5,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Loader2, Bot, User } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import type { Message, OPAResult } from '@/lib/types';
-import { tryParseResult, stripInternalMonologue } from '@/lib/types';
+import type { Message, OPAResult, JourneyStage } from '@/lib/types';
+import { tryParseResult, stripInternalMonologue, extractMetadata } from '@/lib/types';
 import { sendMessage } from '@/lib/ai-service';
 import { useToast } from '@/hooks/use-toast';
+import { JourneyStepper } from '@/components/journey-stepper';
+import { DecisionMode } from '@/components/decision-mode';
+import type { DecisionData } from '@/lib/types';
 
 const TEST_PASSPHRASE = import.meta.env.VITE_TEST_PASSPHRASE || '';
 
@@ -55,6 +58,9 @@ interface ConversationProps {
   onAddMessage: (message: Message) => void;
   onComplete: (result: OPAResult) => void;
   onApiError: (error: string) => void;
+  // State props to update parent state from here
+  currentStage: JourneyStage;
+  onUpdateStage: (stage: JourneyStage, progress: number, decisionData?: DecisionData | null) => void;
 }
 
 export function Conversation({
@@ -64,9 +70,12 @@ export function Conversation({
   onAddMessage,
   onComplete,
   onApiError,
+  currentStage,
+  onUpdateStage,
 }: ConversationProps) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [decisionData, setDecisionData] = useState<DecisionData | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -76,63 +85,100 @@ export function Conversation({
     }
   }, [messages]);
 
+  const handleCommit = (commitment: string) => {
+    // Treat commitment as a user message
+    const commitmentMessage: Message = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: `${commitment}`,
+      timestamp: new Date(),
+    };
+    onAddMessage(commitmentMessage);
+    setDecisionData(null); // Close modal
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    // Trigger AI response to finalize
+    handleSend(commitmentMessage.content, true);
+  };
+
+  const handleSend = async (manualContent?: string, isCommitment = false) => {
+    const contentToSend = manualContent || input;
+    if (!contentToSend.trim() || isLoading) return;
 
     // Check for test passphrase
-    if (TEST_PASSPHRASE && input.trim() === TEST_PASSPHRASE) {
+    if (TEST_PASSPHRASE && contentToSend.trim() === TEST_PASSPHRASE) {
       // Add a system message to show test mode was triggered
       const testModeMessage: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: isRtl 
-          ? '**وضع الاختبار** - جاري توليد تقرير تجريبي...' 
+        content: isRtl
+          ? '**وضع الاختبار** - جاري توليد تقرير تجريبي...'
           : '**Test Mode** - Generating sample report...',
         timestamp: new Date(),
       };
       onAddMessage(testModeMessage);
       setInput('');
-      
+
       toast({
         title: isRtl ? 'وضع الاختبار' : 'Test Mode',
-        description: isRtl 
-          ? 'تم تفعيل وضع الاختبار - هذا تقرير تجريبي' 
+        description: isRtl
+          ? 'تم تفعيل وضع الاختبار - هذا تقرير تجريبي'
           : 'Test mode activated - this is a sample report',
       });
-      
+
       const mockResult = language === 'ar' ? MOCK_RESULT_AR : MOCK_RESULT_EN;
       onComplete(mockResult);
       return;
     }
 
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date(),
-    };
+    // Only add user message if it's not a manual commitment (already added)
+    if (!isCommitment) {
+      const userMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: contentToSend.trim(),
+        timestamp: new Date(),
+      };
+      onAddMessage(userMessage);
+    }
 
-    onAddMessage(userMessage);
     setInput('');
     setIsLoading(true);
 
     try {
+      const messagesToSend = isCommitment
+        ? [...messages, { role: 'user', content: contentToSend, id: crypto.randomUUID(), timestamp: new Date() } as Message]
+        : [...messages, { role: 'user', content: contentToSend, id: crypto.randomUUID(), timestamp: new Date() } as Message];
+
       const rawResponse = await sendMessage(
-        [...messages, userMessage],
+        messagesToSend,
         language
       );
 
       const result = tryParseResult(rawResponse);
-      
+
       if (result) {
         onComplete(result);
       } else {
-        const cleanedContent = stripInternalMonologue(rawResponse);
+        // Extract metadata first
+        const { cleanContent, metadata } = extractMetadata(rawResponse);
+
+        // Update stage if metadata exists
+        if (metadata) {
+          onUpdateStage(metadata.stage, metadata.progress, metadata.decision_data);
+
+          // Check for decision data
+          if (metadata.decision_data) {
+            setDecisionData(metadata.decision_data);
+          }
+        }
+
+        // Clean internal monologue
+        const finalContent = stripInternalMonologue(cleanContent);
+
         const assistantMessage: Message = {
           id: crypto.randomUUID(),
           role: 'assistant',
-          content: cleanedContent,
+          content: finalContent,
           timestamp: new Date(),
         };
         onAddMessage(assistantMessage);
@@ -146,35 +192,55 @@ export function Conversation({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Send on Ctrl+Enter (Windows/Linux) or Cmd+Enter (macOS)
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSend();
     }
+    // Plain Enter just inserts newline (default textarea behavior)
   };
 
   const labels = isRtl
     ? {
-        title: 'محادثة مع سند',
-        placeholder: 'اكتب رسالتك هنا...',
-        send: 'إرسال',
-        thinking: 'جاري التفكير...',
-      }
+      title: 'محادثة مع سند',
+      placeholder: 'اكتب رسالتك هنا... (Ctrl+Enter للإرسال)',
+      send: 'إرسال',
+      thinking: 'جاري التفكير...',
+    }
     : {
-        title: 'Chat with Sanad',
-        placeholder: 'Type your message here...',
-        send: 'Send',
-        thinking: 'Thinking...',
-      };
+      title: 'Chat with Sanad',
+      placeholder: 'Type your message here... (Ctrl+Enter to send)',
+      send: 'Send',
+      thinking: 'Thinking...',
+    };
 
   return (
-    <section className="py-8 px-4 md:px-6" dir={isRtl ? 'rtl' : 'ltr'}>
-      <div className="max-w-3xl mx-auto space-y-4">
+    <section className="flex flex-col h-full relative">
+      {/* Persistent Stepper at the top of conversation */}
+      <JourneyStepper
+        currentStage={currentStage}
+        isRtl={isRtl}
+        language={language}
+      />
+
+      {/* Decision Mode Overlay */}
+      {decisionData && (
+        <DecisionMode
+          data={decisionData}
+          isRtl={isRtl}
+          language={language}
+          onCommit={handleCommit}
+          onReevaluate={() => setDecisionData(null)}
+        />
+      )}
+
+      <div className="py-8 px-4 md:px-6 max-w-3xl mx-auto w-full space-y-4" dir={isRtl ? 'rtl' : 'ltr'}>
         <div className="text-center mb-6">
           <h2 className="text-2xl font-semibold" data-testid="text-conversation-title">{labels.title}</h2>
         </div>
 
         <Card className="overflow-hidden">
-          <ScrollArea 
+          <ScrollArea
             ref={scrollRef}
             className="h-[400px] md:h-[450px] p-4"
           >
@@ -182,19 +248,17 @@ export function Conversation({
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex gap-3 ${
-                    message.role === 'user' 
-                      ? isRtl ? 'flex-row-reverse' : 'flex-row'
-                      : ''
-                  }`}
+                  className={`flex gap-3 ${message.role === 'user'
+                    ? isRtl ? 'flex-row-reverse' : 'flex-row'
+                    : ''
+                    }`}
                   data-testid={`message-${message.role}-${message.id}`}
                 >
                   <div
-                    className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
-                    }`}
+                    className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${message.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted'
+                      }`}
                   >
                     {message.role === 'user' ? (
                       <User className="h-4 w-4" />
@@ -203,17 +267,15 @@ export function Conversation({
                     )}
                   </div>
                   <div
-                    className={`flex-1 rounded-lg p-4 ${
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
-                    }`}
+                    className={`flex-1 rounded-lg p-4 ${message.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted'
+                      }`}
                   >
-                    <div className={`text-sm leading-relaxed prose prose-sm max-w-none ${
-                      message.role === 'user' 
-                        ? 'prose-invert' 
-                        : 'dark:prose-invert'
-                    }`}>
+                    <div className={`text-sm leading-relaxed prose prose-sm max-w-none ${message.role === 'user'
+                      ? 'prose-invert'
+                      : 'dark:prose-invert'
+                      }`}>
                       <ReactMarkdown>
                         {message.content}
                       </ReactMarkdown>
@@ -251,7 +313,7 @@ export function Conversation({
               />
               <Button
                 size="icon"
-                onClick={handleSend}
+                onClick={() => handleSend()}
                 disabled={!input.trim() || isLoading}
                 className="h-auto aspect-square"
                 data-testid="button-send-message"
