@@ -263,7 +263,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       const prompt = await storage.upsertSystemPrompt({
         language,
         content,
-        updatedBy: user.claims.sub,
+        updatedBy: user?.claims?.sub || "dev-admin",
       });
 
       res.json({ success: true, prompt });

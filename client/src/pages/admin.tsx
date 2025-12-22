@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, MessageSquare, Activity, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Users, MessageSquare, Activity, Loader2, AlertCircle, ArrowLeft, Save, Beaker } from 'lucide-react';
 import { APP_CONSTANTS } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 interface AdminStats {
   uniqueUsers: number;
@@ -10,11 +13,19 @@ interface AdminStats {
   activeUsers24h: number;
 }
 
+interface PromptData {
+  ar: string;
+  en: string;
+}
+
 export default function Admin() {
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [prompts, setPrompts] = useState<PromptData>({ ar: '', en: '' });
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRtl, setIsRtl] = useState(false);
+  const { toast } = useToast();
 
   const labels = isRtl ? APP_CONSTANTS.ADMIN.AR : APP_CONSTANTS.ADMIN.EN;
 
@@ -23,24 +34,67 @@ export default function Admin() {
     const savedLang = localStorage.getItem('opa_language');
     setIsRtl(savedLang === 'ar');
 
-    fetchStats();
+    fetchData();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchData = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await fetch('/api/admin/stats');
-      if (!response.ok) {
-        throw new Error('Failed to fetch stats');
+
+      const [statsRes, promptsRes] = await Promise.all([
+        fetch('/api/admin/stats'),
+        fetch('/api/admin/prompts')
+      ]);
+
+      if (!statsRes.ok || !promptsRes.ok) {
+        throw new Error('Failed to fetch data');
       }
-      const data = await response.json();
-      setStats(data);
+
+      const [statsData, promptsData] = await Promise.all([
+        statsRes.json(),
+        promptsRes.json()
+      ]);
+
+      setStats(statsData);
+      setPrompts(promptsData);
     } catch (err) {
-      console.error('Failed to fetch admin stats:', err);
+      console.error('Failed to fetch admin data:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSavePrompt = async (language: 'ar' | 'en') => {
+    try {
+      setIsSaving(true);
+      const response = await fetch('/api/admin/prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language,
+          content: prompts[language]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save prompt');
+      }
+
+      toast({
+        title: labels.saveSuccess,
+        variant: 'default',
+      });
+    } catch (err) {
+      console.error(`Failed to save ${language} prompt:`, err);
+      toast({
+        title: labels.saveError,
+        description: err instanceof Error ? err.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -60,62 +114,143 @@ export default function Admin() {
         {isLoading && (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            <span className="ml-3 text-muted-foreground">{labels.loading}</span>
+            <span className={`text-muted-foreground ${isRtl ? 'mr-3' : 'ml-3'}`}>{labels.loading}</span>
           </div>
         )}
 
-        {error && (
+        {error && !isLoading && (
           <div className="flex flex-col items-center justify-center py-20 text-destructive">
             <AlertCircle className="h-12 w-12 mb-4" />
             <p className="text-lg font-medium">{labels.error}</p>
             <p className="text-sm text-muted-foreground mt-2">{error}</p>
-            <Button variant="outline" onClick={fetchStats} className="mt-4">
+            <Button variant="outline" onClick={fetchData} className="mt-4">
               {isRtl ? 'إعادة المحاولة' : 'Retry'}
             </Button>
           </div>
         )}
 
-        {stats && !isLoading && !error && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Unique Users */}
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {labels.uniqueUsers}
-                </CardTitle>
-                <Users className="h-5 w-5 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-4xl font-bold">{stats.uniqueUsers}</div>
-              </CardContent>
-            </Card>
+        {!isLoading && !error && (
+          <Tabs defaultValue="analytics" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-8">
+              <TabsTrigger value="analytics">
+                <Activity className={`h-4 w-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
+                {labels.analytics}
+              </TabsTrigger>
+              <TabsTrigger value="prompt-lab">
+                <Beaker className={`h-4 w-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
+                {labels.promptLab}
+              </TabsTrigger>
+            </TabsList>
 
-            {/* Total Messages */}
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {labels.totalMessages}
-                </CardTitle>
-                <MessageSquare className="h-5 w-5 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-4xl font-bold">{stats.totalMessages}</div>
-              </CardContent>
-            </Card>
+            <TabsContent value="analytics">
+              {stats && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Unique Users */}
+                  <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                        {labels.uniqueUsers}
+                      </CardTitle>
+                      <Users className="h-5 w-5 text-primary" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-4xl font-bold">{stats.uniqueUsers}</div>
+                    </CardContent>
+                  </Card>
 
-            {/* Active Users 24h */}
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {labels.activeUsers24h}
-                </CardTitle>
-                <Activity className="h-5 w-5 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-4xl font-bold text-green-600">{stats.activeUsers24h}</div>
-              </CardContent>
-            </Card>
-          </div>
+                  {/* Total Messages */}
+                  <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                        {labels.totalMessages}
+                      </CardTitle>
+                      <MessageSquare className="h-5 w-5 text-primary" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-4xl font-bold">{stats.totalMessages}</div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Active Users 24h */}
+                  <Card className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium text-muted-foreground">
+                        {labels.activeUsers24h}
+                      </CardTitle>
+                      <Activity className="h-5 w-5 text-green-500" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-4xl font-bold text-green-600">{stats.activeUsers24h}</div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="prompt-lab" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Arabic Prompt */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="text-lg font-semibold">{labels.arPrompt}</span>
+                      <Button
+                        size="sm"
+                        onClick={() => handleSavePrompt('ar')}
+                        disabled={isSaving}
+                      >
+                        {isSaving ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className={`h-4 w-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
+                        )}
+                        {isSaving ? labels.saving : labels.save}
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      dir="rtl"
+                      className="min-h-[500px] font-mono text-xs leading-relaxed"
+                      value={prompts.ar}
+                      onChange={(e) => setPrompts(prev => ({ ...prev, ar: e.target.value }))}
+                      placeholder="..."
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* English Prompt */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="text-lg font-semibold">{labels.enPrompt}</span>
+                      <Button
+                        size="sm"
+                        onClick={() => handleSavePrompt('en')}
+                        disabled={isSaving}
+                      >
+                        {isSaving ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className={`h-4 w-4 ${isRtl ? 'ml-2' : 'mr-2'}`} />
+                        )}
+                        {isSaving ? labels.saving : labels.save}
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      dir="ltr"
+                      className="min-h-[500px] font-mono text-xs leading-relaxed"
+                      value={prompts.en}
+                      onChange={(e) => setPrompts(prev => ({ ...prev, en: e.target.value }))}
+                      placeholder="..."
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
         )}
       </main>
     </div>
