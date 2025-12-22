@@ -126,10 +126,24 @@ export default function Home() {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-b from-emerald-50/50 to-white dark:from-gray-900 dark:to-gray-950"
+      className="min-h-screen bg-gradient-to-b from-emerald-50/50 to-white dark:from-gray-900 dark:to-gray-950 relative overflow-x-hidden"
       // dir prop removed as we handle it globally now
       data-testid="home-page"
     >
+      {/* Beta Corner Ribbon */}
+      <div
+        className="fixed top-4 z-50"
+        style={{ 
+          [state.isRtl ? 'left' : 'right']: '-35px',
+          transform: state.isRtl ? 'rotate(-45deg)' : 'rotate(45deg)'
+        }}
+        data-testid="beta-ribbon"
+      >
+        <div className="bg-primary text-primary-foreground text-xs font-bold py-1.5 px-10 shadow-lg text-center">
+          {state.isRtl ? 'تجريبي' : 'Beta'}
+        </div>
+      </div>
+
       <Header
         isRtl={state.isRtl}
         onToggleLanguage={toggleLanguage}
