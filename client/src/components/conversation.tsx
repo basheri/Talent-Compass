@@ -3,15 +3,16 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2, Bot, User } from 'lucide-react';
+import { Send, Loader2, Bot, User, ThumbsUp, ThumbsDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { Message, OPAResult, JourneyStage } from '@/lib/types';
 import { tryParseResult, stripInternalMonologue, extractMetadata } from '@/lib/types';
-import { sendMessage } from '@/lib/ai-service';
+import { sendMessage, submitMessageFeedback, getMessageFeedback } from '@/lib/ai-service';
 import { useToast } from '@/hooks/use-toast';
 import { JourneyStepper } from '@/components/journey-stepper';
 import { DecisionMode } from '@/components/decision-mode';
 import type { DecisionData } from '@/lib/types';
+import { getSessionId } from '@/lib/session';
 
 const TEST_PASSPHRASE = import.meta.env.VITE_TEST_PASSPHRASE || '';
 
@@ -76,8 +77,44 @@ export function Conversation({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [decisionData, setDecisionData] = useState<DecisionData | null>(null);
+  const [feedbackState, setFeedbackState] = useState<Record<string, 'up' | 'down' | null>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const handleFeedback = async (messageId: string, rating: 'up' | 'down') => {
+    // Toggle if same rating, otherwise set new rating
+    const currentRating = feedbackState[messageId];
+    const newRating = currentRating === rating ? null : rating;
+    
+    setFeedbackState(prev => ({ ...prev, [messageId]: newRating }));
+    
+    try {
+      await submitMessageFeedback(messageId, newRating);
+    } catch (error) {
+      // Revert state on failure
+      setFeedbackState(prev => ({ ...prev, [messageId]: currentRating }));
+      toast({
+        title: language === 'ar' ? 'خطأ' : 'Error',
+        description: language === 'ar' ? 'فشل في حفظ التقييم' : 'Failed to save feedback',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Load persisted feedback on mount
+  useEffect(() => {
+    const loadFeedback = async () => {
+      try {
+        const feedback = await getMessageFeedback();
+        if (Object.keys(feedback).length > 0) {
+          setFeedbackState(feedback);
+        }
+      } catch (error) {
+        console.error('Failed to load feedback:', error);
+      }
+    };
+    loadFeedback();
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -280,6 +317,28 @@ export function Conversation({
                         {message.content}
                       </ReactMarkdown>
                     </div>
+                    {message.role === 'assistant' && (
+                      <div className={`flex gap-1 mt-2 ${isRtl ? 'justify-start' : 'justify-end'}`}>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className={`h-7 w-7 ${feedbackState[message.id] === 'up' ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'}`}
+                          onClick={() => handleFeedback(message.id, 'up')}
+                          data-testid={`button-feedback-up-${message.id}`}
+                        >
+                          <ThumbsUp className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className={`h-7 w-7 ${feedbackState[message.id] === 'down' ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}
+                          onClick={() => handleFeedback(message.id, 'down')}
+                          data-testid={`button-feedback-down-${message.id}`}
+                        >
+                          <ThumbsDown className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

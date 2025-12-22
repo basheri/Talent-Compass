@@ -273,6 +273,95 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Message Feedback (thumbs up/down during chat)
+  app.post("/api/feedback/message", async (req, res) => {
+    try {
+      const { sessionId, messageId, rating } = req.body;
+
+      if (!sessionId || !messageId) {
+        return res.status(400).json({ error: "sessionId and messageId required" });
+      }
+
+      // null rating means delete the feedback
+      if (rating === null) {
+        await storage.deleteMessageFeedback(sessionId, messageId);
+        return res.json({ success: true, deleted: true });
+      }
+
+      if (rating !== 'up' && rating !== 'down') {
+        return res.status(400).json({ error: "rating must be 'up', 'down', or null" });
+      }
+
+      const feedback = await storage.saveMessageFeedback({ sessionId, messageId, rating });
+      res.json({ success: true, feedback });
+    } catch (error) {
+      console.error("Message feedback error:", error);
+      res.status(500).json({ error: "Failed to save feedback" });
+    }
+  });
+
+  // Get message feedback for a session
+  app.get("/api/feedback/messages/:sessionId", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      if (!sessionId) {
+        return res.status(400).json({ error: "sessionId required" });
+      }
+      const feedback = await storage.getSessionMessageFeedback(sessionId);
+      res.json({ feedback });
+    } catch (error) {
+      console.error("Get message feedback error:", error);
+      res.status(500).json({ error: "Failed to get feedback" });
+    }
+  });
+
+  // Session Feedback (overall feedback after report)
+  app.post("/api/feedback/session", async (req, res) => {
+    try {
+      const { sessionId, rating, comment } = req.body;
+
+      if (!sessionId || typeof rating !== 'number') {
+        return res.status(400).json({ error: "sessionId and rating required" });
+      }
+
+      if (rating < 1 || rating > 5) {
+        return res.status(400).json({ error: "rating must be between 1 and 5" });
+      }
+
+      const feedback = await storage.saveSessionFeedback({ sessionId, rating, comment: comment || null });
+      res.json({ success: true, feedback });
+    } catch (error) {
+      console.error("Session feedback error:", error);
+      res.status(500).json({ error: "Failed to save feedback" });
+    }
+  });
+
+  // Get session feedback
+  app.get("/api/feedback/session/:sessionId", async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      if (!sessionId) {
+        return res.status(400).json({ error: "sessionId required" });
+      }
+      const feedback = await storage.getSessionFeedback(sessionId);
+      res.json({ feedback: feedback || null });
+    } catch (error) {
+      console.error("Get session feedback error:", error);
+      res.status(500).json({ error: "Failed to get feedback" });
+    }
+  });
+
+  // Get feedback stats for admin
+  app.get("/api/admin/feedback-stats", ...adminMiddleware, async (req, res) => {
+    try {
+      const stats = await storage.getFeedbackStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Feedback stats error:", error);
+      res.status(500).json({ error: "Failed to fetch feedback stats" });
+    }
+  });
+
   // PDF Export endpoint - Puppeteer-based for perfect Arabic rendering
   app.post("/api/export-report-pdf", async (req, res) => {
     try {

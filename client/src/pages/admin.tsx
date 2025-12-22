@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, MessageSquare, Activity, Loader2, AlertCircle, ArrowLeft, Save, Beaker } from 'lucide-react';
+import { Users, MessageSquare, Activity, Loader2, AlertCircle, ArrowLeft, Save, Beaker, ThumbsUp, ThumbsDown, Star } from 'lucide-react';
 import { APP_CONSTANTS } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,6 +13,13 @@ interface AdminStats {
   activeUsers24h: number;
 }
 
+interface FeedbackStats {
+  thumbsUp: number;
+  thumbsDown: number;
+  avgRating: number;
+  totalSessionFeedback: number;
+}
+
 interface PromptData {
   ar: string;
   en: string;
@@ -20,6 +27,7 @@ interface PromptData {
 
 export default function Admin() {
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [feedbackStats, setFeedbackStats] = useState<FeedbackStats | null>(null);
   const [prompts, setPrompts] = useState<PromptData>({ ar: '', en: '' });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -42,9 +50,10 @@ export default function Admin() {
       setIsLoading(true);
       setError(null);
 
-      const [statsRes, promptsRes] = await Promise.all([
+      const [statsRes, promptsRes, feedbackRes] = await Promise.all([
         fetch('/api/admin/stats'),
-        fetch('/api/admin/prompts')
+        fetch('/api/admin/prompts'),
+        fetch('/api/admin/feedback-stats')
       ]);
 
       if (!statsRes.ok || !promptsRes.ok) {
@@ -58,6 +67,11 @@ export default function Admin() {
 
       setStats(statsData);
       setPrompts(promptsData);
+
+      if (feedbackRes.ok) {
+        const feedbackData = await feedbackRes.json();
+        setFeedbackStats(feedbackData);
+      }
     } catch (err) {
       console.error('Failed to fetch admin data:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -183,6 +197,71 @@ export default function Admin() {
                       <div className="text-4xl font-bold text-green-600">{stats.activeUsers24h}</div>
                     </CardContent>
                   </Card>
+                </div>
+              )}
+
+              {/* Feedback Stats Section */}
+              {feedbackStats && (
+                <div className="mt-8">
+                  <h3 className="text-lg font-semibold mb-4">
+                    {isRtl ? 'إحصائيات الملاحظات' : 'Feedback Statistics'}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {/* Thumbs Up */}
+                    <Card className="hover:shadow-lg transition-shadow">
+                      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                          {isRtl ? 'إعجابات' : 'Thumbs Up'}
+                        </CardTitle>
+                        <ThumbsUp className="h-5 w-5 text-green-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-4xl font-bold text-green-600">{feedbackStats.thumbsUp}</div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Thumbs Down */}
+                    <Card className="hover:shadow-lg transition-shadow">
+                      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                          {isRtl ? 'عدم إعجاب' : 'Thumbs Down'}
+                        </CardTitle>
+                        <ThumbsDown className="h-5 w-5 text-red-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-4xl font-bold text-red-600">{feedbackStats.thumbsDown}</div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Average Rating */}
+                    <Card className="hover:shadow-lg transition-shadow">
+                      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                          {isRtl ? 'متوسط التقييم' : 'Avg Rating'}
+                        </CardTitle>
+                        <Star className="h-5 w-5 text-yellow-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-4xl font-bold text-yellow-600">
+                          {feedbackStats.avgRating.toFixed(1)}
+                          <span className="text-lg text-muted-foreground">/5</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Total Session Feedback */}
+                    <Card className="hover:shadow-lg transition-shadow">
+                      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
+                          {isRtl ? 'إجمالي التقييمات' : 'Total Ratings'}
+                        </CardTitle>
+                        <MessageSquare className="h-5 w-5 text-primary" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-4xl font-bold">{feedbackStats.totalSessionFeedback}</div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
               )}
             </TabsContent>

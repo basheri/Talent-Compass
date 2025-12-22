@@ -55,3 +55,39 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
 });
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
+
+// Message Feedback table - stores thumbs up/down on individual AI messages
+export const messageFeedback = pgTable("message_feedback", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull(),
+  messageId: varchar("message_id").notNull(), // client-side message ID
+  rating: varchar("rating", { length: 10 }).notNull(), // 'up' or 'down'
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_message_feedback_session").on(table.sessionId),
+]);
+
+export const insertMessageFeedbackSchema = createInsertSchema(messageFeedback).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertMessageFeedback = z.infer<typeof insertMessageFeedbackSchema>;
+export type MessageFeedback = typeof messageFeedback.$inferSelect;
+
+// Session Feedback table - stores overall feedback after report completion
+export const sessionFeedback = pgTable("session_feedback", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull(),
+  rating: integer("rating").notNull(), // 1-5 stars
+  comment: text("comment"), // optional free-form feedback
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("idx_session_feedback_session").on(table.sessionId),
+]);
+
+export const insertSessionFeedbackSchema = createInsertSchema(sessionFeedback).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertSessionFeedback = z.infer<typeof insertSessionFeedbackSchema>;
+export type SessionFeedback = typeof sessionFeedback.$inferSelect;

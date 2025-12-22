@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { OPAResult, DecisionData } from '@/lib/types';
 import { DownloadReportButton } from './sanad-report-pdf';
+import { SessionFeedback } from './session-feedback';
 
 interface ResultsDisplayProps {
   isRtl: boolean;
@@ -204,6 +205,8 @@ export function ResultsDisplay({ isRtl, result, onRestart, decisionData }: Resul
               </p>
             </CardContent>
           </Card>
+
+          <SessionFeedback isRtl={isRtl} />
 
           <div className="text-center pt-6 border-t text-xs text-muted-foreground print:block">
             <p>Sanad - Elite Strategic Career Consultant</p>
