@@ -135,7 +135,19 @@ export async function setupAuth(app: Express) {
     passport.authenticate(`replitauth:${req.hostname}`, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
-    })(req, res, next);
+    })(req, res, (err: any) => {
+      if (err) {
+        const isDnsError = err?.code === 'EAI_AGAIN' || 
+                           err?.message?.includes('EAI_AGAIN') ||
+                           err?.code === 'ENOTFOUND';
+        if (isDnsError) {
+          console.error("DNS resolution error during auth callback:", err.message);
+          return res.redirect("/api/login?error=network");
+        }
+        return next(err);
+      }
+      next();
+    });
   });
 
   app.get("/api/logout", (req, res) => {
