@@ -17,9 +17,12 @@ export interface IStorage {
   // Chat Sessions
   getOrCreateSession(sessionId: string): Promise<ChatSession>;
   updateSessionActivity(sessionId: string): Promise<void>;
+  getAllSessions(limit?: number, offset?: number): Promise<ChatSession[]>;
+  getSessionsCount(): Promise<number>;
 
   // Chat Messages
-  logMessage(sessionId: string, role: string): Promise<ChatMessage>;
+  logMessage(sessionId: string, role: string, content?: string, stage?: string): Promise<ChatMessage>;
+  getSessionMessages(sessionId: string): Promise<ChatMessage[]>;
 
   // Message Feedback (thumbs up/down during chat)
   saveMessageFeedback(data: InsertMessageFeedback): Promise<MessageFeedback>;
@@ -36,6 +39,12 @@ export interface IStorage {
   getTotalMessagesCount(): Promise<number>;
   getActiveUsers24h(): Promise<number>;
   getFeedbackStats(): Promise<{ thumbsUp: number; thumbsDown: number; avgRating: number; totalSessionFeedback: number }>;
+  getBehaviorStats(): Promise<{ 
+    avgMessagesPerSession: number; 
+    completionRate: number; 
+    stageDropoffs: Record<string, number>;
+    messagesByDay: { date: string; count: number }[];
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -83,13 +92,35 @@ export class DatabaseStorage implements IStorage {
       .where(eq(chatSessions.id, sessionId));
   }
 
+  async getAllSessions(limit = 50, offset = 0): Promise<ChatSession[]> {
+    return db
+      .select()
+      .from(chatSessions)
+      .orderBy(sql`${chatSessions.lastActiveAt} DESC`)
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getSessionsCount(): Promise<number> {
+    const result = await db.select({ count: count() }).from(chatSessions);
+    return result[0]?.count || 0;
+  }
+
   // Chat Messages
-  async logMessage(sessionId: string, role: string): Promise<ChatMessage> {
+  async logMessage(sessionId: string, role: string, content?: string, stage?: string): Promise<ChatMessage> {
     const [message] = await db
       .insert(chatMessages)
-      .values({ sessionId, role })
+      .values({ sessionId, role, content: content || null, stage: stage || null })
       .returning();
     return message;
+  }
+
+  async getSessionMessages(sessionId: string): Promise<ChatMessage[]> {
+    return db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.sessionId, sessionId))
+      .orderBy(chatMessages.createdAt);
   }
 
   // Analytics
@@ -212,6 +243,81 @@ export class DatabaseStorage implements IStorage {
       totalSessionFeedback: sessionStats?.count || 0,
     };
   }
+
+  // Behavior Analytics
+  async getBehaviorStats(): Promise<{ 
+    avgMessagesPerSession: number; 
+    completionRate: number; 
+    stageDropoffs: Record<string, number>;
+    messagesByDay: { date: string; count: number }[];
+  }> {
+    // Average messages per session
+    const [msgStats] = await db
+      .select({
+        totalMessages: count(),
+        totalSessions: sql<number>`COUNT(DISTINCT ${chatMessages.sessionId})`
+      })
+      .from(chatMessages);
+    
+    const avgMessagesPerSession = msgStats?.totalSessions 
+      ? (msgStats.totalMessages / Number(msgStats.totalSessions)) 
+      : 0;
+
+    // Completion rate (sessions that reached 'commitment' stage)
+    const [completedCount] = await db
+      .select({ count: sql<number>`COUNT(DISTINCT ${chatMessages.sessionId})` })
+      .from(chatMessages)
+      .where(eq(chatMessages.stage, 'commitment'));
+    
+    const [totalSessionsCount] = await db
+      .select({ count: count() })
+      .from(chatSessions);
+    
+    const completionRate = totalSessionsCount?.count 
+      ? (Number(completedCount?.count || 0) / totalSessionsCount.count) * 100 
+      : 0;
+
+    // Stage dropoffs - count sessions at each stage (last stage they reached)
+    const stageResults = await db
+      .select({
+        stage: chatMessages.stage,
+        count: sql<number>`COUNT(DISTINCT ${chatMessages.sessionId})`
+      })
+      .from(chatMessages)
+      .where(sql`${chatMessages.stage} IS NOT NULL`)
+      .groupBy(chatMessages.stage);
+    
+    const stageDropoffs: Record<string, number> = {};
+    for (const row of stageResults) {
+      if (row.stage) {
+        stageDropoffs[row.stage] = Number(row.count);
+      }
+    }
+
+    // Messages by day (last 7 days)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const dailyResults = await db
+      .select({
+        date: sql<string>`DATE(${chatMessages.createdAt})`,
+        count: count()
+      })
+      .from(chatMessages)
+      .where(gte(chatMessages.createdAt, sevenDaysAgo))
+      .groupBy(sql`DATE(${chatMessages.createdAt})`)
+      .orderBy(sql`DATE(${chatMessages.createdAt})`);
+    
+    const messagesByDay = dailyResults.map(row => ({
+      date: String(row.date),
+      count: row.count
+    }));
+
+    return {
+      avgMessagesPerSession: Math.round(avgMessagesPerSession * 10) / 10,
+      completionRate: Math.round(completionRate * 10) / 10,
+      stageDropoffs,
+      messagesByDay,
+    };
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -264,15 +370,33 @@ export class MemStorage implements IStorage {
     }
   }
 
-  async logMessage(sessionId: string, role: string): Promise<ChatMessage> {
+  async getAllSessions(limit = 50, offset = 0): Promise<ChatSession[]> {
+    const sessions = Array.from(this.chatSessions.values());
+    sessions.sort((a, b) => (b.lastActiveAt?.getTime() || 0) - (a.lastActiveAt?.getTime() || 0));
+    return sessions.slice(offset, offset + limit);
+  }
+
+  async getSessionsCount(): Promise<number> {
+    return this.chatSessions.size;
+  }
+
+  async logMessage(sessionId: string, role: string, content?: string, stage?: string): Promise<ChatMessage> {
     const message: ChatMessage = {
       id: Math.random().toString(36).substring(7),
       sessionId,
       role,
+      content: content || null,
+      stage: stage || null,
       createdAt: new Date(),
     };
     this.chatMessages.push(message);
     return message;
+  }
+
+  async getSessionMessages(sessionId: string): Promise<ChatMessage[]> {
+    return this.chatMessages
+      .filter(m => m.sessionId === sessionId)
+      .sort((a, b) => (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0));
   }
 
   async getUniqueUsersCount(): Promise<number> {
@@ -365,6 +489,58 @@ export class MemStorage implements IStorage {
       thumbsDown,
       avgRating: totalSessionFeedback > 0 ? totalRating / totalSessionFeedback : 0,
       totalSessionFeedback,
+    };
+  }
+
+  // Behavior Analytics
+  async getBehaviorStats(): Promise<{ 
+    avgMessagesPerSession: number; 
+    completionRate: number; 
+    stageDropoffs: Record<string, number>;
+    messagesByDay: { date: string; count: number }[];
+  }> {
+    const sessionCount = this.chatSessions.size;
+    const avgMessagesPerSession = sessionCount > 0 
+      ? this.chatMessages.length / sessionCount 
+      : 0;
+
+    // Count sessions with commitment stage
+    const sessionsWithCommitment = new Set<string>();
+    const stageDropoffs: Record<string, number> = {};
+    
+    for (const msg of this.chatMessages) {
+      if (msg.stage) {
+        stageDropoffs[msg.stage] = (stageDropoffs[msg.stage] || 0) + 1;
+        if (msg.stage === 'commitment') {
+          sessionsWithCommitment.add(msg.sessionId);
+        }
+      }
+    }
+
+    const completionRate = sessionCount > 0 
+      ? (sessionsWithCommitment.size / sessionCount) * 100 
+      : 0;
+
+    // Messages by day (last 7 days)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const dayMap = new Map<string, number>();
+    
+    for (const msg of this.chatMessages) {
+      if (msg.createdAt && msg.createdAt >= sevenDaysAgo) {
+        const date = msg.createdAt.toISOString().split('T')[0];
+        dayMap.set(date, (dayMap.get(date) || 0) + 1);
+      }
+    }
+
+    const messagesByDay = Array.from(dayMap.entries())
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      avgMessagesPerSession: Math.round(avgMessagesPerSession * 10) / 10,
+      completionRate: Math.round(completionRate * 10) / 10,
+      stageDropoffs,
+      messagesByDay,
     };
   }
 }

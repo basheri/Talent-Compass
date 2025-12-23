@@ -151,6 +151,43 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     next();
   };
 
+  // Helper to extract stage from AI metadata (handles nested JSON objects)
+  const extractStage = (text: string): string | undefined => {
+    // Find METADATA block start
+    const startMatch = text.match(/\[METADATA:\s*/);
+    if (!startMatch) return undefined;
+    
+    const startIndex = (startMatch.index ?? 0) + startMatch[0].length;
+    
+    // Parse JSON from start position, handling nested braces
+    let braceCount = 0;
+    let jsonStart = -1;
+    let jsonEnd = -1;
+    
+    for (let i = startIndex; i < text.length; i++) {
+      const char = text[i];
+      if (char === '{') {
+        if (jsonStart === -1) jsonStart = i;
+        braceCount++;
+      } else if (char === '}') {
+        braceCount--;
+        if (braceCount === 0) {
+          jsonEnd = i + 1;
+          break;
+        }
+      }
+    }
+    
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      try {
+        const jsonStr = text.slice(jsonStart, jsonEnd);
+        const metadata = JSON.parse(jsonStr);
+        return metadata.stage;
+      } catch { /* ignore */ }
+    }
+    return undefined;
+  };
+
   // Public chat endpoint with analytics logging
   app.post("/api/chat", async (req, res) => {
     try {
@@ -162,12 +199,15 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         return res.status(400).json({ error: "Messages array required" });
       }
 
+      // Get the latest user message for logging
+      const lastUserMessage = chatHistory.filter((m: any) => m.role === 'user').pop();
+
       // Log session and message to database for analytics
       if (sessionId) {
         try {
           await storage.getOrCreateSession(sessionId);
           await storage.updateSessionActivity(sessionId);
-          await storage.logMessage(sessionId, 'user');
+          await storage.logMessage(sessionId, 'user', lastUserMessage?.content);
         } catch (err) {
           console.error("Analytics logging error:", err);
         }
@@ -202,10 +242,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         text = response.candidates[0].content.parts[0].text;
       }
 
-      // Log assistant response
+      // Extract stage from AI response metadata
+      const stage = extractStage(text);
+
+      // Log assistant response with content and stage
       if (sessionId) {
         try {
-          await storage.logMessage(sessionId, 'assistant');
+          await storage.logMessage(sessionId, 'assistant', text, stage);
         } catch (err) {
           console.error("Analytics logging error:", err);
         }
@@ -375,6 +418,79 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (error) {
       console.error("Feedback stats error:", error);
       res.status(500).json({ error: "Failed to fetch feedback stats" });
+    }
+  });
+
+  // Get behavior analytics for admin
+  app.get("/api/admin/behavior-stats", ...adminMiddleware, async (req, res) => {
+    try {
+      const stats = await storage.getBehaviorStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Behavior stats error:", error);
+      res.status(500).json({ error: "Failed to fetch behavior stats" });
+    }
+  });
+
+  // Get all sessions for admin
+  app.get("/api/admin/sessions", ...adminMiddleware, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      const [sessions, total] = await Promise.all([
+        storage.getAllSessions(limit, offset),
+        storage.getSessionsCount(),
+      ]);
+      
+      res.json({ sessions, total, limit, offset });
+    } catch (error) {
+      console.error("Get sessions error:", error);
+      res.status(500).json({ error: "Failed to fetch sessions" });
+    }
+  });
+
+  // Get conversation messages for a session (admin)
+  app.get("/api/admin/sessions/:sessionId/messages", ...adminMiddleware, async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const messages = await storage.getSessionMessages(sessionId);
+      res.json({ messages });
+    } catch (error) {
+      console.error("Get session messages error:", error);
+      res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+
+  // Export conversation as TXT
+  app.get("/api/admin/sessions/:sessionId/export", ...adminMiddleware, async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const messages = await storage.getSessionMessages(sessionId);
+      
+      if (messages.length === 0) {
+        return res.status(404).json({ error: "No messages found for this session" });
+      }
+
+      // Format messages as text
+      let txtContent = `Sanad Conversation Export\n`;
+      txtContent += `Session ID: ${sessionId}\n`;
+      txtContent += `Date: ${new Date().toISOString()}\n`;
+      txtContent += `${'='.repeat(50)}\n\n`;
+
+      for (const msg of messages) {
+        const role = msg.role === 'user' ? 'User' : 'Sanad';
+        const time = msg.createdAt ? new Date(msg.createdAt).toLocaleString() : 'Unknown';
+        txtContent += `[${role}] (${time})\n`;
+        txtContent += `${msg.content || '(empty)'}\n\n`;
+      }
+
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="conversation-${sessionId}.txt"`);
+      res.send(txtContent);
+    } catch (error) {
+      console.error("Export conversation error:", error);
+      res.status(500).json({ error: "Failed to export conversation" });
     }
   });
 

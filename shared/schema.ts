@@ -43,6 +43,8 @@ export const chatMessages = pgTable("chat_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   sessionId: varchar("session_id").notNull(),
   role: varchar("role", { length: 20 }).notNull(), // 'user' or 'assistant'
+  content: text("content"), // message content for archive
+  stage: varchar("stage", { length: 30 }), // journey stage (outcome, purpose, reality, options, decision, commitment)
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("idx_chat_messages_session").on(table.sessionId),
