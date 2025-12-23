@@ -1,10 +1,11 @@
 import {
-  systemPrompts, chatSessions, chatMessages, messageFeedback, sessionFeedback,
+  systemPrompts, chatSessions, chatMessages, messageFeedback, sessionFeedback, verifiedResources,
   type SystemPrompt, type InsertSystemPrompt,
   type ChatSession, type InsertChatSession,
   type ChatMessage, type InsertChatMessage,
   type MessageFeedback, type InsertMessageFeedback,
-  type SessionFeedback, type InsertSessionFeedback
+  type SessionFeedback, type InsertSessionFeedback,
+  type VerifiedResource, type InsertVerifiedResource
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, gte, count, and } from "drizzle-orm";
@@ -45,6 +46,14 @@ export interface IStorage {
     stageDropoffs: Record<string, number>;
     messagesByDay: { date: string; count: number }[];
   }>;
+
+  // Verified Resources
+  getVerifiedResources(filters?: { type?: string; field?: string; isActive?: string }): Promise<VerifiedResource[]>;
+  getVerifiedResourceById(id: string): Promise<VerifiedResource | undefined>;
+  createVerifiedResource(data: InsertVerifiedResource): Promise<VerifiedResource>;
+  updateVerifiedResource(id: string, data: Partial<InsertVerifiedResource>): Promise<VerifiedResource | undefined>;
+  deleteVerifiedResource(id: string): Promise<void>;
+  getResourcesByField(field: string, type?: string): Promise<VerifiedResource[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -318,6 +327,62 @@ export class DatabaseStorage implements IStorage {
       messagesByDay,
     };
   }
+
+  // Verified Resources
+  async getVerifiedResources(filters?: { type?: string; field?: string; isActive?: string }): Promise<VerifiedResource[]> {
+    let query = db.select().from(verifiedResources);
+    
+    if (filters?.isActive) {
+      query = query.where(eq(verifiedResources.isActive, filters.isActive)) as typeof query;
+    }
+    if (filters?.type) {
+      query = query.where(eq(verifiedResources.type, filters.type)) as typeof query;
+    }
+    if (filters?.field) {
+      query = query.where(eq(verifiedResources.field, filters.field)) as typeof query;
+    }
+    
+    return query;
+  }
+
+  async getVerifiedResourceById(id: string): Promise<VerifiedResource | undefined> {
+    const [resource] = await db.select().from(verifiedResources).where(eq(verifiedResources.id, id));
+    return resource || undefined;
+  }
+
+  async createVerifiedResource(data: InsertVerifiedResource): Promise<VerifiedResource> {
+    const [created] = await db.insert(verifiedResources).values(data).returning();
+    return created;
+  }
+
+  async updateVerifiedResource(id: string, data: Partial<InsertVerifiedResource>): Promise<VerifiedResource | undefined> {
+    const [updated] = await db
+      .update(verifiedResources)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(verifiedResources.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteVerifiedResource(id: string): Promise<void> {
+    await db.delete(verifiedResources).where(eq(verifiedResources.id, id));
+  }
+
+  async getResourcesByField(field: string, type?: string): Promise<VerifiedResource[]> {
+    let query = db
+      .select()
+      .from(verifiedResources)
+      .where(and(
+        eq(verifiedResources.field, field),
+        eq(verifiedResources.isActive, 'yes')
+      ));
+    
+    if (type) {
+      query = query.where(eq(verifiedResources.type, type)) as typeof query;
+    }
+    
+    return query;
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -542,6 +607,72 @@ export class MemStorage implements IStorage {
       stageDropoffs,
       messagesByDay,
     };
+  }
+
+  // Verified Resources (stub implementation for MemStorage)
+  private verifiedResourcesMap: Map<string, VerifiedResource> = new Map();
+
+  async getVerifiedResources(filters?: { type?: string; field?: string; isActive?: string }): Promise<VerifiedResource[]> {
+    let resources = Array.from(this.verifiedResourcesMap.values());
+    if (filters?.isActive) {
+      resources = resources.filter(r => r.isActive === filters.isActive);
+    }
+    if (filters?.type) {
+      resources = resources.filter(r => r.type === filters.type);
+    }
+    if (filters?.field) {
+      resources = resources.filter(r => r.field === filters.field);
+    }
+    return resources;
+  }
+
+  async getVerifiedResourceById(id: string): Promise<VerifiedResource | undefined> {
+    return this.verifiedResourcesMap.get(id);
+  }
+
+  async createVerifiedResource(data: InsertVerifiedResource): Promise<VerifiedResource> {
+    const id = Math.random().toString(36).substring(7);
+    const resource: VerifiedResource = {
+      id,
+      type: data.type,
+      name: data.name,
+      nameAr: data.nameAr ?? null,
+      platform: data.platform,
+      field: data.field,
+      fieldAr: data.fieldAr ?? null,
+      level: data.level ?? null,
+      language: data.language ?? null,
+      cost: data.cost ?? null,
+      hasCertificate: data.hasCertificate ?? null,
+      description: data.description ?? null,
+      descriptionAr: data.descriptionAr ?? null,
+      isActive: data.isActive ?? 'yes',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.verifiedResourcesMap.set(id, resource);
+    return resource;
+  }
+
+  async updateVerifiedResource(id: string, data: Partial<InsertVerifiedResource>): Promise<VerifiedResource | undefined> {
+    const existing = this.verifiedResourcesMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...data, updatedAt: new Date() };
+    this.verifiedResourcesMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteVerifiedResource(id: string): Promise<void> {
+    this.verifiedResourcesMap.delete(id);
+  }
+
+  async getResourcesByField(field: string, type?: string): Promise<VerifiedResource[]> {
+    let resources = Array.from(this.verifiedResourcesMap.values())
+      .filter(r => r.field === field && r.isActive === 'yes');
+    if (type) {
+      resources = resources.filter(r => r.type === type);
+    }
+    return resources;
   }
 }
 

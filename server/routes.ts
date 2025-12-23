@@ -494,6 +494,131 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // Seed initial verified resources (run once)
+  app.post("/api/admin/seed-resources", ...adminMiddleware, async (req, res) => {
+    try {
+      const existingResources = await storage.getVerifiedResources();
+      if (existingResources.length > 0) {
+        return res.json({ message: "Resources already seeded", count: existingResources.length });
+      }
+
+      const seedData = [
+        // Courses - Data Analytics
+        { type: "course", name: "Google Data Analytics Certificate", nameAr: "شهادة تحليل البيانات من جوجل", platform: "Coursera", field: "data_analytics", fieldAr: "تحليل البيانات", level: "beginner", language: "en", cost: "paid", hasCertificate: "yes", description: "Professional certificate from Google covering data analysis fundamentals", descriptionAr: "شهادة احترافية من جوجل تغطي أساسيات تحليل البيانات" },
+        { type: "course", name: "Data Analysis with Python", nameAr: "تحليل البيانات باستخدام Python", platform: "Edraak", field: "data_analytics", fieldAr: "تحليل البيانات", level: "intermediate", language: "ar", cost: "free", hasCertificate: "yes", description: "Learn Python for data analysis in Arabic", descriptionAr: "تعلم Python لتحليل البيانات باللغة العربية" },
+        { type: "course", name: "SQL for Data Analysis", nameAr: "SQL لتحليل البيانات", platform: "LinkedIn Learning", field: "data_analytics", fieldAr: "تحليل البيانات", level: "beginner", language: "en", cost: "paid", hasCertificate: "yes", description: "Essential SQL skills for data analysts", descriptionAr: "مهارات SQL الأساسية لمحللي البيانات" },
+        
+        // Courses - Marketing
+        { type: "course", name: "Digital Marketing Specialization", nameAr: "تخصص التسويق الرقمي", platform: "Coursera", field: "marketing", fieldAr: "التسويق", level: "beginner", language: "en", cost: "paid", hasCertificate: "yes", description: "Comprehensive digital marketing program", descriptionAr: "برنامج شامل للتسويق الرقمي" },
+        { type: "course", name: "Professional Digital Marketing", nameAr: "التسويق الرقمي الاحترافي", platform: "Rwaq", field: "marketing", fieldAr: "التسويق", level: "intermediate", language: "ar", cost: "free", hasCertificate: "yes", description: "Arabic course on professional digital marketing", descriptionAr: "دورة عربية في التسويق الرقمي الاحترافي" },
+        
+        // Courses - Management
+        { type: "course", name: "PMP Certification Prep", nameAr: "التحضير لشهادة PMP", platform: "LinkedIn Learning", field: "management", fieldAr: "الإدارة", level: "advanced", language: "en", cost: "paid", hasCertificate: "no", description: "Prepare for PMP certification exam", descriptionAr: "الاستعداد لامتحان شهادة PMP" },
+        { type: "course", name: "Leadership and Management", nameAr: "القيادة والإدارة", platform: "Edraak", field: "management", fieldAr: "الإدارة", level: "intermediate", language: "ar", cost: "free", hasCertificate: "yes", description: "Develop leadership and management skills", descriptionAr: "تطوير مهارات القيادة والإدارة" },
+        
+        // Courses - Tech/Programming
+        { type: "course", name: "CS50: Introduction to Computer Science", nameAr: "CS50: مقدمة في علوم الحاسب", platform: "edX", field: "technology", fieldAr: "التقنية", level: "beginner", language: "en", cost: "free", hasCertificate: "yes", description: "Harvard's famous introductory course", descriptionAr: "دورة هارفارد الشهيرة في علوم الحاسب" },
+        { type: "course", name: "Python Programming Basics", nameAr: "أساسيات البرمجة بلغة Python", platform: "Edraak", field: "technology", fieldAr: "التقنية", level: "beginner", language: "ar", cost: "free", hasCertificate: "yes", description: "Learn Python programming in Arabic", descriptionAr: "تعلم البرمجة بلغة Python بالعربية" },
+        { type: "course", name: "AWS Cloud Practitioner", nameAr: "ممارس السحابة من AWS", platform: "AWS Training", field: "technology", fieldAr: "التقنية", level: "beginner", language: "en", cost: "paid", hasCertificate: "yes", description: "Entry-level AWS cloud certification", descriptionAr: "شهادة السحابة للمبتدئين من AWS" },
+        
+        // Communities - Data Analytics
+        { type: "community", name: "Saudi Data Scientists", nameAr: "علماء البيانات السعوديين", platform: "LinkedIn Group", field: "data_analytics", fieldAr: "تحليل البيانات", description: "Community for Saudi data professionals", descriptionAr: "مجتمع متخصصي البيانات السعوديين" },
+        { type: "community", name: "Data Analytics Arabia", nameAr: "تحليل البيانات العربية", platform: "Telegram", field: "data_analytics", fieldAr: "تحليل البيانات", description: "Arabic community for data analytics", descriptionAr: "مجتمع عربي لتحليل البيانات" },
+        
+        // Communities - Marketing
+        { type: "community", name: "Digital Marketing KSA", nameAr: "التسويق الرقمي السعودي", platform: "LinkedIn Group", field: "marketing", fieldAr: "التسويق", description: "Saudi digital marketing professionals", descriptionAr: "متخصصو التسويق الرقمي السعوديون" },
+        { type: "community", name: "Arab Marketers Network", nameAr: "شبكة المسوقين العرب", platform: "Facebook Group", field: "marketing", fieldAr: "التسويق", description: "Arab marketing professionals network", descriptionAr: "شبكة متخصصي التسويق العرب" },
+        
+        // Communities - Management
+        { type: "community", name: "HR Leaders Saudi Arabia", nameAr: "قادة الموارد البشرية السعودية", platform: "LinkedIn Group", field: "management", fieldAr: "الإدارة", description: "HR and management professionals in KSA", descriptionAr: "متخصصو الموارد البشرية والإدارة في السعودية" },
+        { type: "community", name: "Saudi Entrepreneurs", nameAr: "رواد الأعمال السعوديين", platform: "Telegram", field: "management", fieldAr: "الإدارة", description: "Community for Saudi entrepreneurs", descriptionAr: "مجتمع لرواد الأعمال السعوديين" },
+        
+        // Communities - Tech
+        { type: "community", name: "Saudi Tech Professionals", nameAr: "المتخصصون التقنيون السعوديون", platform: "LinkedIn Group", field: "technology", fieldAr: "التقنية", description: "Tech professionals in Saudi Arabia", descriptionAr: "المتخصصون التقنيون في السعودية" },
+        { type: "community", name: "Arab Developers", nameAr: "المطورون العرب", platform: "Discord", field: "technology", fieldAr: "التقنية", description: "Arabic-speaking developers community", descriptionAr: "مجتمع المطورين الناطقين بالعربية" },
+        { type: "community", name: "Saudi Coders", nameAr: "المبرمجون السعوديون", platform: "Twitter/X", field: "technology", fieldAr: "التقنية", description: "Follow @SaudiCoders for tech updates", descriptionAr: "تابع @SaudiCoders للتحديثات التقنية" },
+        { type: "community", name: "Women in Tech Arabia", nameAr: "نساء في التقنية العربية", platform: "LinkedIn Group", field: "technology", fieldAr: "التقنية", description: "Supporting women in technology across the Arab world", descriptionAr: "دعم المرأة في مجال التقنية في العالم العربي" },
+      ];
+
+      for (const data of seedData) {
+        await storage.createVerifiedResource(data);
+      }
+
+      res.json({ message: "Resources seeded successfully", count: seedData.length });
+    } catch (error) {
+      console.error("Seed resources error:", error);
+      res.status(500).json({ error: "Failed to seed resources" });
+    }
+  });
+
+  // Verified Resources Admin API
+  app.get("/api/admin/resources", ...adminMiddleware, async (req, res) => {
+    try {
+      const { type, field, isActive } = req.query;
+      const resources = await storage.getVerifiedResources({
+        type: type as string | undefined,
+        field: field as string | undefined,
+        isActive: isActive as string | undefined
+      });
+      res.json({ resources });
+    } catch (error) {
+      console.error("Get resources error:", error);
+      res.status(500).json({ error: "Failed to fetch resources" });
+    }
+  });
+
+  app.post("/api/admin/resources", ...adminMiddleware, async (req, res) => {
+    try {
+      const resource = await storage.createVerifiedResource(req.body);
+      res.json({ resource });
+    } catch (error) {
+      console.error("Create resource error:", error);
+      res.status(500).json({ error: "Failed to create resource" });
+    }
+  });
+
+  app.put("/api/admin/resources/:id", ...adminMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const resource = await storage.updateVerifiedResource(id, req.body);
+      if (!resource) {
+        return res.status(404).json({ error: "Resource not found" });
+      }
+      res.json({ resource });
+    } catch (error) {
+      console.error("Update resource error:", error);
+      res.status(500).json({ error: "Failed to update resource" });
+    }
+  });
+
+  app.delete("/api/admin/resources/:id", ...adminMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteVerifiedResource(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete resource error:", error);
+      res.status(500).json({ error: "Failed to delete resource" });
+    }
+  });
+
+  // Public endpoint - Get resources for report by career field
+  app.get("/api/resources/:field", async (req, res) => {
+    try {
+      const { field } = req.params;
+      const validFields = ['technology', 'data_analytics', 'marketing', 'management', 'finance', 'health'];
+      if (!validFields.includes(field)) {
+        return res.json([]);
+      }
+      const { type } = req.query;
+      const resources = await storage.getResourcesByField(field, type as string | undefined);
+      res.json(resources);
+    } catch (error) {
+      console.error("Get resources by field error:", error);
+      res.status(500).json({ error: "Failed to fetch resources" });
+    }
+  });
+
   // PDF Export endpoint - Puppeteer-based for perfect Arabic rendering
   app.post("/api/export-report-pdf", async (req, res) => {
     try {

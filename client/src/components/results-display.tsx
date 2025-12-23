@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,11 +9,30 @@ import {
   Compass,
   Lightbulb,
   RefreshCw,
-  TrendingUp
+  TrendingUp,
+  BookOpen,
+  Users,
+  GraduationCap
 } from 'lucide-react';
 import type { OPAResult, DecisionData } from '@/lib/types';
 import { DownloadReportButton } from './sanad-report-pdf';
 import { SessionFeedback } from './session-feedback';
+
+interface VerifiedResource {
+  id: string;
+  type: string;
+  name: string;
+  nameAr: string | null;
+  platform: string;
+  field: string;
+  fieldAr: string | null;
+  level: string | null;
+  language: string | null;
+  cost: string | null;
+  hasCertificate: string | null;
+  description: string | null;
+  descriptionAr: string | null;
+}
 
 interface ResultsDisplayProps {
   isRtl: boolean;
@@ -21,7 +41,53 @@ interface ResultsDisplayProps {
   decisionData?: DecisionData | null;
 }
 
+function detectCareerField(careerPaths: string[]): string {
+  const pathsText = careerPaths.join(' ').toLowerCase();
+  
+  if (pathsText.includes('data') || pathsText.includes('analytics') || pathsText.includes('تحليل') || pathsText.includes('بيانات')) {
+    return 'data_analytics';
+  }
+  if (pathsText.includes('marketing') || pathsText.includes('تسويق') || pathsText.includes('brand') || pathsText.includes('علامة')) {
+    return 'marketing';
+  }
+  if (pathsText.includes('management') || pathsText.includes('إدارة') || pathsText.includes('leader') || pathsText.includes('قيادة') || pathsText.includes('project')) {
+    return 'management';
+  }
+  if (pathsText.includes('tech') || pathsText.includes('software') || pathsText.includes('developer') || pathsText.includes('برمجة') || pathsText.includes('تقنية') || pathsText.includes('ai') || pathsText.includes('ذكاء')) {
+    return 'technology';
+  }
+  if (pathsText.includes('finance') || pathsText.includes('مالية') || pathsText.includes('accounting')) {
+    return 'finance';
+  }
+  if (pathsText.includes('health') || pathsText.includes('صحة') || pathsText.includes('medical')) {
+    return 'health';
+  }
+  return 'technology';
+}
+
 export function ResultsDisplay({ isRtl, result, onRestart, decisionData }: ResultsDisplayProps) {
+  const [resources, setResources] = useState<VerifiedResource[]>([]);
+  const [isLoadingResources, setIsLoadingResources] = useState(true);
+  
+  useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        const field = detectCareerField(result.career_paths);
+        const response = await fetch(`/api/resources/${field}`);
+        if (response.ok) {
+          const data = await response.json();
+          setResources(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch resources:', error);
+      } finally {
+        setIsLoadingResources(false);
+      }
+    };
+    
+    fetchResources();
+  }, [result.career_paths]);
+
   const labels = isRtl
     ? {
       title: 'تحليلك الاستراتيجي',
@@ -38,6 +104,12 @@ export function ResultsDisplay({ isRtl, result, onRestart, decisionData }: Resul
       safeRoute: 'المسار الآمن',
       aggressiveRoute: 'مسار النمو السريع',
       blueOcean: 'المسار الفريد',
+      resources: 'مصادر تعليمية مقترحة',
+      resourcesSubtitle: 'ابحث عن هذه الدورات والمجتمعات على المنصات التالية',
+      courses: 'دورات تدريبية',
+      communities: 'مجتمعات مهنية',
+      searchOn: 'ابحث على',
+      noResources: 'لا توجد مصادر متاحة حالياً',
     }
     : {
       title: 'Your Strategic Analysis',
@@ -54,6 +126,12 @@ export function ResultsDisplay({ isRtl, result, onRestart, decisionData }: Resul
       safeRoute: 'Safe Route',
       aggressiveRoute: 'Aggressive Growth',
       blueOcean: 'Blue Ocean Niche',
+      resources: 'Recommended Learning Resources',
+      resourcesSubtitle: 'Search for these courses and communities on the following platforms',
+      courses: 'Training Courses',
+      communities: 'Professional Communities',
+      searchOn: 'Search on',
+      noResources: 'No resources available yet',
     };
 
   const currentDate = new Date().toLocaleDateString(isRtl ? 'ar-SA' : 'en-US', {
@@ -205,6 +283,102 @@ export function ResultsDisplay({ isRtl, result, onRestart, decisionData }: Resul
               </p>
             </CardContent>
           </Card>
+
+          {!isLoadingResources && resources.length > 0 && (
+            <Card data-testid="card-resources">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  {labels.resources}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">{labels.resourcesSubtitle}</p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {resources.filter(r => r.type === 'course').length > 0 && (
+                  <div>
+                    <h4 className="font-semibold flex items-center gap-2 mb-3">
+                      <GraduationCap className="h-4 w-4 text-primary" />
+                      {labels.courses}
+                    </h4>
+                    <div className="space-y-3">
+                      {resources.filter(r => r.type === 'course').slice(0, 4).map((resource, index) => (
+                        <div
+                          key={resource.id}
+                          className="p-3 rounded-lg bg-muted/50 space-y-1"
+                          data-testid={`resource-course-${index}`}
+                        >
+                          <div className="flex items-start justify-between gap-2 flex-wrap">
+                            <span className="font-medium">
+                              {isRtl && resource.nameAr ? resource.nameAr : resource.name}
+                            </span>
+                            <div className="flex gap-1 flex-wrap">
+                              {resource.level && (
+                                <Badge variant="outline" className="text-xs">
+                                  {resource.level === 'beginner' ? (isRtl ? 'مبتدئ' : 'Beginner') :
+                                    resource.level === 'intermediate' ? (isRtl ? 'متوسط' : 'Intermediate') :
+                                      (isRtl ? 'متقدم' : 'Advanced')}
+                                </Badge>
+                              )}
+                              {resource.cost === 'free' && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {isRtl ? 'مجاني' : 'Free'}
+                                </Badge>
+                              )}
+                              {resource.hasCertificate === 'yes' && (
+                                <Badge variant="default" className="text-xs">
+                                  {isRtl ? 'شهادة' : 'Certificate'}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {labels.searchOn}: <span className="font-medium">{resource.platform}</span>
+                          </p>
+                          {(resource.description || resource.descriptionAr) && (
+                            <p className="text-sm text-muted-foreground">
+                              {isRtl && resource.descriptionAr ? resource.descriptionAr : resource.description}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {resources.filter(r => r.type === 'community').length > 0 && (
+                  <div>
+                    <h4 className="font-semibold flex items-center gap-2 mb-3">
+                      <Users className="h-4 w-4 text-primary" />
+                      {labels.communities}
+                    </h4>
+                    <div className="space-y-3">
+                      {resources.filter(r => r.type === 'community').slice(0, 4).map((resource, index) => (
+                        <div
+                          key={resource.id}
+                          className="p-3 rounded-lg bg-muted/50 space-y-1"
+                          data-testid={`resource-community-${index}`}
+                        >
+                          <div className="flex items-start justify-between gap-2 flex-wrap">
+                            <span className="font-medium">
+                              {isRtl && resource.nameAr ? resource.nameAr : resource.name}
+                            </span>
+                            <Badge variant="outline" className="text-xs">
+                              {resource.platform}
+                            </Badge>
+                          </div>
+                          {(resource.description || resource.descriptionAr) && (
+                            <p className="text-sm text-muted-foreground">
+                              {isRtl && resource.descriptionAr ? resource.descriptionAr : resource.description}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <SessionFeedback isRtl={isRtl} />
 

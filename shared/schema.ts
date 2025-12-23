@@ -93,3 +93,35 @@ export const insertSessionFeedbackSchema = createInsertSchema(sessionFeedback).o
 });
 export type InsertSessionFeedback = z.infer<typeof insertSessionFeedbackSchema>;
 export type SessionFeedback = typeof sessionFeedback.$inferSelect;
+
+// Verified Resources table - curated educational resources and communities
+export const verifiedResources = pgTable("verified_resources", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: varchar("type", { length: 20 }).notNull(), // 'course' or 'community'
+  name: text("name").notNull(), // Resource name
+  nameAr: text("name_ar"), // Arabic name
+  platform: varchar("platform", { length: 100 }).notNull(), // Coursera, LinkedIn, etc.
+  field: varchar("field", { length: 100 }).notNull(), // tech, marketing, management, etc.
+  fieldAr: varchar("field_ar", { length: 100 }), // Arabic field name
+  level: varchar("level", { length: 20 }), // beginner, intermediate, advanced
+  language: varchar("language", { length: 20 }), // ar, en, both
+  cost: varchar("cost", { length: 20 }), // free, paid
+  hasCertificate: varchar("has_certificate", { length: 10 }), // yes, no
+  description: text("description"), // Brief description
+  descriptionAr: text("description_ar"), // Arabic description
+  isActive: varchar("is_active", { length: 10 }).default("yes"), // yes, no
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_verified_resources_type").on(table.type),
+  index("idx_verified_resources_field").on(table.field),
+  index("idx_verified_resources_active").on(table.isActive),
+]);
+
+export const insertVerifiedResourceSchema = createInsertSchema(verifiedResources).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertVerifiedResource = z.infer<typeof insertVerifiedResourceSchema>;
+export type VerifiedResource = typeof verifiedResources.$inferSelect;
