@@ -289,8 +289,21 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       res.json({ content: text });
     } catch (error) {
       console.error("Chat error:", error);
-      const message = error instanceof Error ? error.message : "Failed to get response";
-      res.status(500).json({ error: message });
+
+      // Never expose raw database/DNS errors to users
+      const isDatabaseError = error instanceof Error && (
+        error.message?.includes('EAI_AGAIN') ||
+        error.message?.includes('getaddrinfo') ||
+        error.message?.includes('helium') ||
+        error.message?.includes('ECONNRESET') ||
+        error.message?.includes('ETIMEDOUT')
+      );
+
+      const message = isDatabaseError
+        ? "Service temporarily unavailable. Please try again."
+        : (error instanceof Error ? error.message : "Failed to get response");
+
+      res.status(isDatabaseError ? 503 : 500).json({ error: message });
     }
   });
 

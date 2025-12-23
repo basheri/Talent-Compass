@@ -733,5 +733,15 @@ export class MemStorage implements IStorage {
   }
 }
 
-const isHelium = process.env.DATABASE_URL?.includes('@helium');
-export const storage = (process.env.DATABASE_URL && !isHelium) ? new DatabaseStorage() : new MemStorage();
+const isHelium = process.env.DATABASE_URL?.includes('@helium') || process.env.DATABASE_URL?.includes('helium');
+const hasValidDatabase = process.env.DATABASE_URL && !isHelium && db !== null;
+
+// Use MemStorage if database is not configured, contains helium, or db initialization failed
+export const storage = hasValidDatabase ? new DatabaseStorage() : new MemStorage();
+
+if (!hasValidDatabase) {
+  console.log('[Storage] Using MemoryStorage (ephemeral sessions). Database:',
+    !process.env.DATABASE_URL ? 'not configured' :
+    isHelium ? 'contains helium alias (unreliable)' :
+    'initialization failed');
+}
