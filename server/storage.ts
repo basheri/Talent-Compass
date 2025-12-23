@@ -7,7 +7,7 @@ import {
   type SessionFeedback, type InsertSessionFeedback,
   type VerifiedResource, type InsertVerifiedResource
 } from "@shared/schema";
-import { db } from "./db";
+import { db, executeWithRetry } from "./db";
 import { eq, sql, gte, count, and } from "drizzle-orm";
 
 export interface IStorage {
@@ -59,198 +59,234 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // System Prompts
   async getSystemPrompt(language: string): Promise<SystemPrompt | undefined> {
-    const [prompt] = await db.select().from(systemPrompts).where(eq(systemPrompts.language, language));
-    return prompt || undefined;
+    return executeWithRetry(async () => {
+      const [prompt] = await db!.select().from(systemPrompts).where(eq(systemPrompts.language, language));
+      return prompt || undefined;
+    }, 'getSystemPrompt');
   }
 
   async upsertSystemPrompt(prompt: InsertSystemPrompt & { language: string }): Promise<SystemPrompt> {
-    const existing = await this.getSystemPrompt(prompt.language);
-    if (existing) {
-      const [updated] = await db
-        .update(systemPrompts)
-        .set({ content: prompt.content, updatedAt: new Date(), updatedBy: prompt.updatedBy })
-        .where(eq(systemPrompts.language, prompt.language))
-        .returning();
-      return updated;
-    } else {
-      const [created] = await db
-        .insert(systemPrompts)
-        .values(prompt)
-        .returning();
-      return created;
-    }
+    return executeWithRetry(async () => {
+      const existing = await this.getSystemPrompt(prompt.language);
+      if (existing) {
+        const [updated] = await db!
+          .update(systemPrompts)
+          .set({ content: prompt.content, updatedAt: new Date(), updatedBy: prompt.updatedBy })
+          .where(eq(systemPrompts.language, prompt.language))
+          .returning();
+        return updated;
+      } else {
+        const [created] = await db!
+          .insert(systemPrompts)
+          .values(prompt)
+          .returning();
+        return created;
+      }
+    }, 'upsertSystemPrompt');
   }
 
   // Chat Sessions
   async getOrCreateSession(sessionId: string): Promise<ChatSession> {
-    const [existing] = await db.select().from(chatSessions).where(eq(chatSessions.id, sessionId));
-    if (existing) {
-      return existing;
-    }
-    const [created] = await db
-      .insert(chatSessions)
-      .values({ id: sessionId })
-      .returning();
-    return created;
+    return executeWithRetry(async () => {
+      const [existing] = await db!.select().from(chatSessions).where(eq(chatSessions.id, sessionId));
+      if (existing) {
+        return existing;
+      }
+      const [created] = await db!
+        .insert(chatSessions)
+        .values({ id: sessionId })
+        .returning();
+      return created;
+    }, 'getOrCreateSession');
   }
 
   async updateSessionActivity(sessionId: string): Promise<void> {
-    await db
-      .update(chatSessions)
-      .set({ lastActiveAt: new Date() })
-      .where(eq(chatSessions.id, sessionId));
+    return executeWithRetry(async () => {
+      await db!
+        .update(chatSessions)
+        .set({ lastActiveAt: new Date() })
+        .where(eq(chatSessions.id, sessionId));
+    }, 'updateSessionActivity');
   }
 
   async getAllSessions(limit = 50, offset = 0): Promise<ChatSession[]> {
-    return db
-      .select()
-      .from(chatSessions)
-      .orderBy(sql`${chatSessions.lastActiveAt} DESC`)
-      .limit(limit)
-      .offset(offset);
+    return executeWithRetry(async () => {
+      return db!
+        .select()
+        .from(chatSessions)
+        .orderBy(sql`${chatSessions.lastActiveAt} DESC`)
+        .limit(limit)
+        .offset(offset);
+    }, 'getAllSessions');
   }
 
   async getSessionsCount(): Promise<number> {
-    const result = await db.select({ count: count() }).from(chatSessions);
-    return result[0]?.count || 0;
+    return executeWithRetry(async () => {
+      const result = await db!.select({ count: count() }).from(chatSessions);
+      return result[0]?.count || 0;
+    }, 'getSessionsCount');
   }
 
   // Chat Messages
   async logMessage(sessionId: string, role: string, content?: string, stage?: string): Promise<ChatMessage> {
-    const [message] = await db
-      .insert(chatMessages)
-      .values({ sessionId, role, content: content || null, stage: stage || null })
-      .returning();
-    return message;
+    return executeWithRetry(async () => {
+      const [message] = await db!
+        .insert(chatMessages)
+        .values({ sessionId, role, content: content || null, stage: stage || null })
+        .returning();
+      return message;
+    }, 'logMessage');
   }
 
   async getSessionMessages(sessionId: string): Promise<ChatMessage[]> {
-    return db
-      .select()
-      .from(chatMessages)
-      .where(eq(chatMessages.sessionId, sessionId))
-      .orderBy(chatMessages.createdAt);
+    return executeWithRetry(async () => {
+      return db!
+        .select()
+        .from(chatMessages)
+        .where(eq(chatMessages.sessionId, sessionId))
+        .orderBy(chatMessages.createdAt);
+    }, 'getSessionMessages');
   }
 
   // Analytics
   async getUniqueUsersCount(): Promise<number> {
-    const result = await db.select({ count: count() }).from(chatSessions);
-    return result[0]?.count || 0;
+    return executeWithRetry(async () => {
+      const result = await db!.select({ count: count() }).from(chatSessions);
+      return result[0]?.count || 0;
+    }, 'getUniqueUsersCount');
   }
 
   async getTotalMessagesCount(): Promise<number> {
-    const result = await db.select({ count: count() }).from(chatMessages);
-    return result[0]?.count || 0;
+    return executeWithRetry(async () => {
+      const result = await db!.select({ count: count() }).from(chatMessages);
+      return result[0]?.count || 0;
+    }, 'getTotalMessagesCount');
   }
 
   async getActiveUsers24h(): Promise<number> {
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const result = await db
-      .select({ count: count() })
-      .from(chatSessions)
-      .where(gte(chatSessions.lastActiveAt, oneDayAgo));
-    return result[0]?.count || 0;
+    return executeWithRetry(async () => {
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const result = await db!
+        .select({ count: count() })
+        .from(chatSessions)
+        .where(gte(chatSessions.lastActiveAt, oneDayAgo));
+      return result[0]?.count || 0;
+    }, 'getActiveUsers24h');
   }
 
   // Message Feedback
   async saveMessageFeedback(data: InsertMessageFeedback): Promise<MessageFeedback> {
-    // Upsert: update if exists, insert if not
-    const existing = await this.getMessageFeedback(data.sessionId, data.messageId);
-    if (existing) {
-      const [updated] = await db
-        .update(messageFeedback)
-        .set({ rating: data.rating })
-        .where(and(
-          eq(messageFeedback.sessionId, data.sessionId),
-          eq(messageFeedback.messageId, data.messageId)
-        ))
+    return executeWithRetry(async () => {
+      // Upsert: update if exists, insert if not
+      const existing = await this.getMessageFeedback(data.sessionId, data.messageId);
+      if (existing) {
+        const [updated] = await db!
+          .update(messageFeedback)
+          .set({ rating: data.rating })
+          .where(and(
+            eq(messageFeedback.sessionId, data.sessionId),
+            eq(messageFeedback.messageId, data.messageId)
+          ))
+          .returning();
+        return updated;
+      }
+      const [created] = await db!
+        .insert(messageFeedback)
+        .values(data)
         .returning();
-      return updated;
-    }
-    const [created] = await db
-      .insert(messageFeedback)
-      .values(data)
-      .returning();
-    return created;
+      return created;
+    }, 'saveMessageFeedback');
   }
 
   async getMessageFeedback(sessionId: string, messageId: string): Promise<MessageFeedback | undefined> {
-    const [feedback] = await db
-      .select()
-      .from(messageFeedback)
-      .where(and(
-        eq(messageFeedback.sessionId, sessionId),
-        eq(messageFeedback.messageId, messageId)
-      ));
-    return feedback || undefined;
+    return executeWithRetry(async () => {
+      const [feedback] = await db!
+        .select()
+        .from(messageFeedback)
+        .where(and(
+          eq(messageFeedback.sessionId, sessionId),
+          eq(messageFeedback.messageId, messageId)
+        ));
+      return feedback || undefined;
+    }, 'getMessageFeedback');
   }
 
   async getSessionMessageFeedback(sessionId: string): Promise<MessageFeedback[]> {
-    return db
-      .select()
-      .from(messageFeedback)
-      .where(eq(messageFeedback.sessionId, sessionId));
+    return executeWithRetry(async () => {
+      return db!
+        .select()
+        .from(messageFeedback)
+        .where(eq(messageFeedback.sessionId, sessionId));
+    }, 'getSessionMessageFeedback');
   }
 
   async deleteMessageFeedback(sessionId: string, messageId: string): Promise<void> {
-    await db
-      .delete(messageFeedback)
-      .where(and(
-        eq(messageFeedback.sessionId, sessionId),
-        eq(messageFeedback.messageId, messageId)
-      ));
+    return executeWithRetry(async () => {
+      await db!
+        .delete(messageFeedback)
+        .where(and(
+          eq(messageFeedback.sessionId, sessionId),
+          eq(messageFeedback.messageId, messageId)
+        ));
+    }, 'deleteMessageFeedback');
   }
 
   // Session Feedback
   async saveSessionFeedback(data: InsertSessionFeedback): Promise<SessionFeedback> {
-    // Upsert: update if exists, insert if not
-    const existing = await this.getSessionFeedback(data.sessionId);
-    if (existing) {
-      const [updated] = await db
-        .update(sessionFeedback)
-        .set({ rating: data.rating, comment: data.comment })
-        .where(eq(sessionFeedback.sessionId, data.sessionId))
+    return executeWithRetry(async () => {
+      // Upsert: update if exists, insert if not
+      const existing = await this.getSessionFeedback(data.sessionId);
+      if (existing) {
+        const [updated] = await db!
+          .update(sessionFeedback)
+          .set({ rating: data.rating, comment: data.comment })
+          .where(eq(sessionFeedback.sessionId, data.sessionId))
+          .returning();
+        return updated;
+      }
+      const [created] = await db!
+        .insert(sessionFeedback)
+        .values(data)
         .returning();
-      return updated;
-    }
-    const [created] = await db
-      .insert(sessionFeedback)
-      .values(data)
-      .returning();
-    return created;
+      return created;
+    }, 'saveSessionFeedback');
   }
 
   async getSessionFeedback(sessionId: string): Promise<SessionFeedback | undefined> {
-    const [feedback] = await db
-      .select()
-      .from(sessionFeedback)
-      .where(eq(sessionFeedback.sessionId, sessionId));
-    return feedback || undefined;
+    return executeWithRetry(async () => {
+      const [feedback] = await db!
+        .select()
+        .from(sessionFeedback)
+        .where(eq(sessionFeedback.sessionId, sessionId));
+      return feedback || undefined;
+    }, 'getSessionFeedback');
   }
 
   // Feedback Analytics
   async getFeedbackStats(): Promise<{ thumbsUp: number; thumbsDown: number; avgRating: number; totalSessionFeedback: number }> {
-    const [thumbsUpResult] = await db
-      .select({ count: count() })
-      .from(messageFeedback)
-      .where(eq(messageFeedback.rating, 'up'));
-    const [thumbsDownResult] = await db
-      .select({ count: count() })
-      .from(messageFeedback)
-      .where(eq(messageFeedback.rating, 'down'));
-    const [sessionStats] = await db
-      .select({ 
-        count: count(),
-        avg: sql<number>`COALESCE(AVG(${sessionFeedback.rating}), 0)`
-      })
-      .from(sessionFeedback);
+    return executeWithRetry(async () => {
+      const [thumbsUpResult] = await db!
+        .select({ count: count() })
+        .from(messageFeedback)
+        .where(eq(messageFeedback.rating, 'up'));
+      const [thumbsDownResult] = await db!
+        .select({ count: count() })
+        .from(messageFeedback)
+        .where(eq(messageFeedback.rating, 'down'));
+      const [sessionStats] = await db!
+        .select({ 
+          count: count(),
+          avg: sql<number>`COALESCE(AVG(${sessionFeedback.rating}), 0)`
+        })
+        .from(sessionFeedback);
 
-    return {
-      thumbsUp: thumbsUpResult?.count || 0,
-      thumbsDown: thumbsDownResult?.count || 0,
-      avgRating: Number(sessionStats?.avg) || 0,
-      totalSessionFeedback: sessionStats?.count || 0,
-    };
+      return {
+        thumbsUp: thumbsUpResult?.count || 0,
+        thumbsDown: thumbsDownResult?.count || 0,
+        avgRating: Number(sessionStats?.avg) || 0,
+        totalSessionFeedback: sessionStats?.count || 0,
+      };
+    }, 'getFeedbackStats');
   }
 
   // Behavior Analytics
@@ -260,128 +296,142 @@ export class DatabaseStorage implements IStorage {
     stageDropoffs: Record<string, number>;
     messagesByDay: { date: string; count: number }[];
   }> {
-    // Average messages per session
-    const [msgStats] = await db
-      .select({
-        totalMessages: count(),
-        totalSessions: sql<number>`COUNT(DISTINCT ${chatMessages.sessionId})`
-      })
-      .from(chatMessages);
-    
-    const avgMessagesPerSession = msgStats?.totalSessions 
-      ? (msgStats.totalMessages / Number(msgStats.totalSessions)) 
-      : 0;
+    return executeWithRetry(async () => {
+      // Average messages per session
+      const [msgStats] = await db!
+        .select({
+          totalMessages: count(),
+          totalSessions: sql<number>`COUNT(DISTINCT ${chatMessages.sessionId})`
+        })
+        .from(chatMessages);
+      
+      const avgMessagesPerSession = msgStats?.totalSessions 
+        ? (msgStats.totalMessages / Number(msgStats.totalSessions)) 
+        : 0;
 
-    // Completion rate (sessions that reached 'commitment' stage)
-    const [completedCount] = await db
-      .select({ count: sql<number>`COUNT(DISTINCT ${chatMessages.sessionId})` })
-      .from(chatMessages)
-      .where(eq(chatMessages.stage, 'commitment'));
-    
-    const [totalSessionsCount] = await db
-      .select({ count: count() })
-      .from(chatSessions);
-    
-    const completionRate = totalSessionsCount?.count 
-      ? (Number(completedCount?.count || 0) / totalSessionsCount.count) * 100 
-      : 0;
+      // Completion rate (sessions that reached 'commitment' stage)
+      const [completedCount] = await db!
+        .select({ count: sql<number>`COUNT(DISTINCT ${chatMessages.sessionId})` })
+        .from(chatMessages)
+        .where(eq(chatMessages.stage, 'commitment'));
+      
+      const [totalSessionsCount] = await db!
+        .select({ count: count() })
+        .from(chatSessions);
+      
+      const completionRate = totalSessionsCount?.count 
+        ? (Number(completedCount?.count || 0) / totalSessionsCount.count) * 100 
+        : 0;
 
-    // Stage dropoffs - count sessions at each stage (last stage they reached)
-    const stageResults = await db
-      .select({
-        stage: chatMessages.stage,
-        count: sql<number>`COUNT(DISTINCT ${chatMessages.sessionId})`
-      })
-      .from(chatMessages)
-      .where(sql`${chatMessages.stage} IS NOT NULL`)
-      .groupBy(chatMessages.stage);
-    
-    const stageDropoffs: Record<string, number> = {};
-    for (const row of stageResults) {
-      if (row.stage) {
-        stageDropoffs[row.stage] = Number(row.count);
+      // Stage dropoffs - count sessions at each stage (last stage they reached)
+      const stageResults = await db!
+        .select({
+          stage: chatMessages.stage,
+          count: sql<number>`COUNT(DISTINCT ${chatMessages.sessionId})`
+        })
+        .from(chatMessages)
+        .where(sql`${chatMessages.stage} IS NOT NULL`)
+        .groupBy(chatMessages.stage);
+      
+      const stageDropoffs: Record<string, number> = {};
+      for (const row of stageResults) {
+        if (row.stage) {
+          stageDropoffs[row.stage] = Number(row.count);
+        }
       }
-    }
 
-    // Messages by day (last 7 days)
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const dailyResults = await db
-      .select({
-        date: sql<string>`DATE(${chatMessages.createdAt})`,
-        count: count()
-      })
-      .from(chatMessages)
-      .where(gte(chatMessages.createdAt, sevenDaysAgo))
-      .groupBy(sql`DATE(${chatMessages.createdAt})`)
-      .orderBy(sql`DATE(${chatMessages.createdAt})`);
-    
-    const messagesByDay = dailyResults.map(row => ({
-      date: String(row.date),
-      count: row.count
-    }));
+      // Messages by day (last 7 days)
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const dailyResults = await db!
+        .select({
+          date: sql<string>`DATE(${chatMessages.createdAt})`,
+          count: count()
+        })
+        .from(chatMessages)
+        .where(gte(chatMessages.createdAt, sevenDaysAgo))
+        .groupBy(sql`DATE(${chatMessages.createdAt})`)
+        .orderBy(sql`DATE(${chatMessages.createdAt})`);
+      
+      const messagesByDay = dailyResults.map(row => ({
+        date: String(row.date),
+        count: row.count
+      }));
 
-    return {
-      avgMessagesPerSession: Math.round(avgMessagesPerSession * 10) / 10,
-      completionRate: Math.round(completionRate * 10) / 10,
-      stageDropoffs,
-      messagesByDay,
-    };
+      return {
+        avgMessagesPerSession: Math.round(avgMessagesPerSession * 10) / 10,
+        completionRate: Math.round(completionRate * 10) / 10,
+        stageDropoffs,
+        messagesByDay,
+      };
+    }, 'getBehaviorStats');
   }
 
   // Verified Resources
   async getVerifiedResources(filters?: { type?: string; field?: string; isActive?: string }): Promise<VerifiedResource[]> {
-    let query = db.select().from(verifiedResources);
-    
-    if (filters?.isActive) {
-      query = query.where(eq(verifiedResources.isActive, filters.isActive)) as typeof query;
-    }
-    if (filters?.type) {
-      query = query.where(eq(verifiedResources.type, filters.type)) as typeof query;
-    }
-    if (filters?.field) {
-      query = query.where(eq(verifiedResources.field, filters.field)) as typeof query;
-    }
-    
-    return query;
+    return executeWithRetry(async () => {
+      let query = db!.select().from(verifiedResources);
+      
+      if (filters?.isActive) {
+        query = query.where(eq(verifiedResources.isActive, filters.isActive)) as typeof query;
+      }
+      if (filters?.type) {
+        query = query.where(eq(verifiedResources.type, filters.type)) as typeof query;
+      }
+      if (filters?.field) {
+        query = query.where(eq(verifiedResources.field, filters.field)) as typeof query;
+      }
+      
+      return query;
+    }, 'getVerifiedResources');
   }
 
   async getVerifiedResourceById(id: string): Promise<VerifiedResource | undefined> {
-    const [resource] = await db.select().from(verifiedResources).where(eq(verifiedResources.id, id));
-    return resource || undefined;
+    return executeWithRetry(async () => {
+      const [resource] = await db!.select().from(verifiedResources).where(eq(verifiedResources.id, id));
+      return resource || undefined;
+    }, 'getVerifiedResourceById');
   }
 
   async createVerifiedResource(data: InsertVerifiedResource): Promise<VerifiedResource> {
-    const [created] = await db.insert(verifiedResources).values(data).returning();
-    return created;
+    return executeWithRetry(async () => {
+      const [created] = await db!.insert(verifiedResources).values(data).returning();
+      return created;
+    }, 'createVerifiedResource');
   }
 
   async updateVerifiedResource(id: string, data: Partial<InsertVerifiedResource>): Promise<VerifiedResource | undefined> {
-    const [updated] = await db
-      .update(verifiedResources)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(verifiedResources.id, id))
-      .returning();
-    return updated || undefined;
+    return executeWithRetry(async () => {
+      const [updated] = await db!
+        .update(verifiedResources)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(verifiedResources.id, id))
+        .returning();
+      return updated || undefined;
+    }, 'updateVerifiedResource');
   }
 
   async deleteVerifiedResource(id: string): Promise<void> {
-    await db.delete(verifiedResources).where(eq(verifiedResources.id, id));
+    return executeWithRetry(async () => {
+      await db!.delete(verifiedResources).where(eq(verifiedResources.id, id));
+    }, 'deleteVerifiedResource');
   }
 
   async getResourcesByField(field: string, type?: string): Promise<VerifiedResource[]> {
-    let query = db
-      .select()
-      .from(verifiedResources)
-      .where(and(
+    return executeWithRetry(async () => {
+      const conditions = [
         eq(verifiedResources.field, field),
         eq(verifiedResources.isActive, 'yes')
-      ));
-    
-    if (type) {
-      query = query.where(eq(verifiedResources.type, type)) as typeof query;
-    }
-    
-    return query;
+      ];
+      
+      if (type) {
+        conditions.push(eq(verifiedResources.type, type));
+      }
+      
+      return db!
+        .select()
+        .from(verifiedResources)
+        .where(and(...conditions));
+    }, 'getResourcesByField');
   }
 }
 
@@ -657,7 +707,12 @@ export class MemStorage implements IStorage {
   async updateVerifiedResource(id: string, data: Partial<InsertVerifiedResource>): Promise<VerifiedResource | undefined> {
     const existing = this.verifiedResourcesMap.get(id);
     if (!existing) return undefined;
-    const updated = { ...existing, ...data, updatedAt: new Date() };
+    
+    const updated: VerifiedResource = {
+      ...existing,
+      ...data,
+      updatedAt: new Date(),
+    };
     this.verifiedResourcesMap.set(id, updated);
     return updated;
   }
@@ -669,9 +724,11 @@ export class MemStorage implements IStorage {
   async getResourcesByField(field: string, type?: string): Promise<VerifiedResource[]> {
     let resources = Array.from(this.verifiedResourcesMap.values())
       .filter(r => r.field === field && r.isActive === 'yes');
+    
     if (type) {
       resources = resources.filter(r => r.type === type);
     }
+    
     return resources;
   }
 }

@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { DatabaseTemporaryError } from "./db";
 
 const app = express();
 const httpServer = createServer(app);
@@ -62,24 +63,39 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
 
+  // Global Error Middleware - handles all errors gracefully
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    let message = err.message || "Internal Server Error";
-    
-    // Handle DNS/database connection errors gracefully
+    // Handle typed DatabaseTemporaryError (from executeWithRetry)
+    if (err instanceof DatabaseTemporaryError || err?.type === 'DB_TEMPORARY_FAILURE') {
+      console.error('[DB Temporary Error]', err.message, err.originalError?.message);
+      return res.status(503).json({ 
+        message: "Temporary database connectivity issue. Please retry.",
+        retryable: true
+      });
+    }
+
+    // Handle raw DNS/database connection errors
     const isDnsError = err?.code === 'EAI_AGAIN' || 
                        err?.message?.includes('EAI_AGAIN') ||
                        err?.message?.includes('getaddrinfo') ||
-                       err?.code === 'ENOTFOUND';
+                       err?.code === 'ENOTFOUND' ||
+                       err?.code === 'ECONNRESET' ||
+                       err?.code === 'ETIMEDOUT';
     
     if (isDnsError) {
-      console.error('Database DNS error in request:', err.message);
-      message = "Service temporarily unavailable. Please try again.";
-      return res.status(503).json({ message });
+      console.error('[DB DNS Error]', err.code, err.message);
+      return res.status(503).json({ 
+        message: "Temporary database connectivity issue. Please retry.",
+        retryable: true
+      });
     }
 
+    // Standard error handling
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    
+    console.error('[Unhandled Error]', status, message);
     res.status(status).json({ message });
-    console.error('Unhandled error:', err);
   });
 
   // importantly only setup vite in development and after

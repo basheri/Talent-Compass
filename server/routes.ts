@@ -134,18 +134,30 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // Health check endpoint (before auth to ensure it always works)
   app.get("/api/health", async (_req, res) => {
     try {
-      const { checkDatabaseConnection } = await import("./db");
-      const dbHealthy = await checkDatabaseConnection(1);
-      res.json({ 
-        status: dbHealthy ? "healthy" : "degraded",
-        database: dbHealthy ? "connected" : "unavailable",
-        timestamp: new Date().toISOString()
-      });
+      const { getDbHealthStatus } = await import("./db");
+      const status = await getDbHealthStatus();
+      const httpStatus = status.status === 'healthy' ? 200 : 503;
+      res.status(httpStatus).json(status);
     } catch (error: any) {
       res.status(503).json({ 
         status: "unhealthy", 
-        database: "error",
-        message: error.message,
+        message: "Health check failed",
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Dedicated DB health endpoint
+  app.get("/health/db", async (_req, res) => {
+    try {
+      const { getDbHealthStatus } = await import("./db");
+      const status = await getDbHealthStatus();
+      const httpStatus = status.status === 'healthy' ? 200 : 503;
+      res.status(httpStatus).json(status);
+    } catch (error: any) {
+      res.status(503).json({ 
+        status: "unhealthy", 
+        message: "Database unavailable",
         timestamp: new Date().toISOString()
       });
     }
