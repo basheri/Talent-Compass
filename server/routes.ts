@@ -131,6 +131,26 @@ const isAdmin = (req: any, res: any, next: any) => {
 };
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
+  // Health check endpoint (before auth to ensure it always works)
+  app.get("/api/health", async (_req, res) => {
+    try {
+      const { checkDatabaseConnection } = await import("./db");
+      const dbHealthy = await checkDatabaseConnection(1);
+      res.json({ 
+        status: dbHealthy ? "healthy" : "degraded",
+        database: dbHealthy ? "connected" : "unavailable",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(503).json({ 
+        status: "unhealthy", 
+        database: "error",
+        message: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Setup authentication with retry for DNS issues
   let authEnabled = false;
   try {

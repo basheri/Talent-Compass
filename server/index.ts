@@ -64,10 +64,22 @@ app.use((req, res, next) => {
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    let message = err.message || "Internal Server Error";
+    
+    // Handle DNS/database connection errors gracefully
+    const isDnsError = err?.code === 'EAI_AGAIN' || 
+                       err?.message?.includes('EAI_AGAIN') ||
+                       err?.message?.includes('getaddrinfo') ||
+                       err?.code === 'ENOTFOUND';
+    
+    if (isDnsError) {
+      console.error('Database DNS error in request:', err.message);
+      message = "Service temporarily unavailable. Please try again.";
+      return res.status(503).json({ message });
+    }
 
     res.status(status).json({ message });
-    throw err;
+    console.error('Unhandled error:', err);
   });
 
   // importantly only setup vite in development and after
