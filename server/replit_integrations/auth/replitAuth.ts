@@ -11,15 +11,15 @@ import { authStorage } from "./storage";
 async function discoverWithRetry(maxRetries = 3, delayMs = 1000) {
   const issuerUrl = new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc");
   const clientId = process.env.REPL_ID!;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await client.discovery(issuerUrl, clientId);
     } catch (error: any) {
-      const isDnsError = error?.code === 'EAI_AGAIN' || 
-                         error?.message?.includes('EAI_AGAIN') ||
-                         error?.code === 'ENOTFOUND';
-      
+      const isDnsError = error?.code === 'EAI_AGAIN' ||
+        error?.message?.includes('EAI_AGAIN') ||
+        error?.code === 'ENOTFOUND';
+
       if (isDnsError && attempt < maxRetries) {
         console.log(`OIDC discovery attempt ${attempt} failed (DNS error), retrying in ${delayMs}ms...`);
         await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
@@ -40,21 +40,40 @@ const getOidcConfig = memoize(
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-  const pgStore = connectPg(session);
-  const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
-    ttl: sessionTtl,
-    tableName: "sessions",
-  });
+  const dbUrl = process.env.DATABASE_URL;
+  const sessionSecret = process.env.SESSION_SECRET || "temp_secret_for_dev_resilience";
+
+  let store;
+
+  // Try to use Postgres store if URL is present and not explicitly internal Replit alias 'helium'
+  if (dbUrl && !dbUrl.includes('@helium')) {
+    try {
+      const pgStore = connectPg(session);
+      store = new pgStore({
+        conString: dbUrl,
+        createTableIfMissing: false,
+        ttl: sessionTtl / 1000, // seconds
+        tableName: "sessions",
+        // Increase error resilience
+        errorLog: (err) => console.error('[Session Store Error]', err.message)
+      });
+
+      console.log("[Session] Initialized PostgreSQL session store");
+    } catch (err) {
+      console.error("[Session] Failed to init PG store, falling back to MemoryStore:", err);
+    }
+  } else if (dbUrl && dbUrl.includes('@helium')) {
+    console.warn("[Session] Internal Replit alias 'helium' detected. Falling back to MemoryStore for resilience.");
+  }
+
   return session({
-    secret: process.env.SESSION_SECRET!,
-    store: sessionStore,
+    secret: sessionSecret,
+    store: store, // If undefined, express-session defaults to MemoryStore
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       maxAge: sessionTtl,
     },
   });
@@ -137,9 +156,9 @@ export async function setupAuth(app: Express) {
       failureRedirect: "/api/login",
     })(req, res, (err: any) => {
       if (err) {
-        const isDnsError = err?.code === 'EAI_AGAIN' || 
-                           err?.message?.includes('EAI_AGAIN') ||
-                           err?.code === 'ENOTFOUND';
+        const isDnsError = err?.code === 'EAI_AGAIN' ||
+          err?.message?.includes('EAI_AGAIN') ||
+          err?.code === 'ENOTFOUND';
         if (isDnsError) {
           console.error("DNS resolution error during auth callback:", err.message);
           return res.redirect("/api/login?error=network");

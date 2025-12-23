@@ -13,11 +13,17 @@ const DATABASE_URL = process.env.DATABASE_URL;
 
 if (!DATABASE_URL) {
   console.warn("DATABASE_URL not set. Database features will be unavailable.");
+} else if (DATABASE_URL.includes('@helium')) {
+  console.warn(
+    "\n⚠️  [DNS Warning] DATABASE_URL contains '@helium'.\n" +
+    "This is an internal Replit alias and will likely fail (EAI_AGAIN) in local environments.\n" +
+    "Please replace it with a fully qualified connection string (e.g., from Neon.tech).\n"
+  );
 }
 
 // Auto-detect SSL requirement for Neon or explicit sslmode=require
 const requiresSSL = DATABASE_URL ? (
-  DATABASE_URL.includes('neon.tech') || 
+  DATABASE_URL.includes('neon.tech') ||
   DATABASE_URL.includes('sslmode=require')
 ) : false;
 
@@ -25,7 +31,7 @@ const requiresSSL = DATABASE_URL ? (
 // SINGLE POOL - Created once at startup, reused for all requests
 // =============================================================================
 
-export const pool = DATABASE_URL ? new Pool({ 
+export const pool = DATABASE_URL ? new Pool({
   connectionString: DATABASE_URL,
   // Timeouts
   connectionTimeoutMillis: 15000,
@@ -88,7 +94,7 @@ const NON_RETRYABLE_SQL_CODES = [
 export class DatabaseTemporaryError extends Error {
   type = 'DB_TEMPORARY_FAILURE' as const;
   status = 503 as const;
-  
+
   constructor(message: string, public originalError?: Error) {
     super(message);
     this.name = 'DatabaseTemporaryError';
@@ -104,7 +110,7 @@ function isRetryableError(error: any): boolean {
   if (error?.code && RETRYABLE_ERROR_CODES.includes(error.code)) {
     return true;
   }
-  
+
   // Check error message for DNS-related issues
   const message = error?.message?.toLowerCase() || '';
   if (
@@ -115,12 +121,12 @@ function isRetryableError(error: any): boolean {
   ) {
     return true;
   }
-  
+
   // Do NOT retry SQL/constraint errors
   if (error?.code && NON_RETRYABLE_SQL_CODES.includes(error.code)) {
     return false;
   }
-  
+
   return false;
 }
 
@@ -130,11 +136,11 @@ function calculateDelay(attempt: number): number {
     RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt - 1),
     RETRY_CONFIG.maxDelayMs
   );
-  
+
   // Add jitter ±20%
   const jitter = baseDelay * RETRY_CONFIG.jitterPercent;
   const randomJitter = (Math.random() * 2 - 1) * jitter;
-  
+
   return Math.floor(baseDelay + randomJitter);
 }
 
@@ -152,24 +158,24 @@ export async function executeWithRetry<T>(
   operationName: string = 'database operation'
 ): Promise<T> {
   let lastError: Error | null = null;
-  
+
   for (let attempt = 1; attempt <= RETRY_CONFIG.maxAttempts; attempt++) {
     try {
       return await operation();
     } catch (error: any) {
       lastError = error;
-      
+
       // Don't retry non-retryable errors
       if (!isRetryableError(error)) {
         throw error;
       }
-      
+
       // Log retry attempt
       console.warn(
         `[DB Retry] ${operationName} failed (attempt ${attempt}/${RETRY_CONFIG.maxAttempts}):`,
         error.code || error.message
       );
-      
+
       // If not last attempt, wait before retry
       if (attempt < RETRY_CONFIG.maxAttempts) {
         const delay = calculateDelay(attempt);
@@ -178,13 +184,13 @@ export async function executeWithRetry<T>(
       }
     }
   }
-  
+
   // All retries exhausted - throw typed error
   console.error(
     `[DB Error] ${operationName} failed after ${RETRY_CONFIG.maxAttempts} attempts:`,
     lastError?.message
   );
-  
+
   throw new DatabaseTemporaryError(
     `Database temporarily unavailable after ${RETRY_CONFIG.maxAttempts} attempts`,
     lastError || undefined
@@ -201,7 +207,7 @@ export async function executeWithRetry<T>(
  */
 export async function checkDbHealth(): Promise<boolean> {
   if (!pool) return false;
-  
+
   try {
     const client = await pool.connect();
     try {
@@ -225,7 +231,7 @@ export async function getDbHealthStatus(): Promise<{
   timestamp: string;
 }> {
   const timestamp = new Date().toISOString();
-  
+
   if (!pool) {
     return {
       status: 'unavailable',
@@ -233,9 +239,9 @@ export async function getDbHealthStatus(): Promise<{
       timestamp,
     };
   }
-  
+
   const isHealthy = await checkDbHealth();
-  
+
   return {
     status: isHealthy ? 'healthy' : 'unhealthy',
     message: isHealthy ? 'Database connected' : 'Database connection failed',

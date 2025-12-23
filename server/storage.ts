@@ -40,9 +40,9 @@ export interface IStorage {
   getTotalMessagesCount(): Promise<number>;
   getActiveUsers24h(): Promise<number>;
   getFeedbackStats(): Promise<{ thumbsUp: number; thumbsDown: number; avgRating: number; totalSessionFeedback: number }>;
-  getBehaviorStats(): Promise<{ 
-    avgMessagesPerSession: number; 
-    completionRate: number; 
+  getBehaviorStats(): Promise<{
+    avgMessagesPerSession: number;
+    completionRate: number;
     stageDropoffs: Record<string, number>;
     messagesByDay: { date: string; count: number }[];
   }>;
@@ -274,7 +274,7 @@ export class DatabaseStorage implements IStorage {
         .from(messageFeedback)
         .where(eq(messageFeedback.rating, 'down'));
       const [sessionStats] = await db!
-        .select({ 
+        .select({
           count: count(),
           avg: sql<number>`COALESCE(AVG(${sessionFeedback.rating}), 0)`
         })
@@ -290,9 +290,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Behavior Analytics
-  async getBehaviorStats(): Promise<{ 
-    avgMessagesPerSession: number; 
-    completionRate: number; 
+  async getBehaviorStats(): Promise<{
+    avgMessagesPerSession: number;
+    completionRate: number;
     stageDropoffs: Record<string, number>;
     messagesByDay: { date: string; count: number }[];
   }> {
@@ -304,9 +304,9 @@ export class DatabaseStorage implements IStorage {
           totalSessions: sql<number>`COUNT(DISTINCT ${chatMessages.sessionId})`
         })
         .from(chatMessages);
-      
-      const avgMessagesPerSession = msgStats?.totalSessions 
-        ? (msgStats.totalMessages / Number(msgStats.totalSessions)) 
+
+      const avgMessagesPerSession = msgStats?.totalSessions
+        ? (msgStats.totalMessages / Number(msgStats.totalSessions))
         : 0;
 
       // Completion rate (sessions that reached 'commitment' stage)
@@ -314,13 +314,13 @@ export class DatabaseStorage implements IStorage {
         .select({ count: sql<number>`COUNT(DISTINCT ${chatMessages.sessionId})` })
         .from(chatMessages)
         .where(eq(chatMessages.stage, 'commitment'));
-      
+
       const [totalSessionsCount] = await db!
         .select({ count: count() })
         .from(chatSessions);
-      
-      const completionRate = totalSessionsCount?.count 
-        ? (Number(completedCount?.count || 0) / totalSessionsCount.count) * 100 
+
+      const completionRate = totalSessionsCount?.count
+        ? (Number(completedCount?.count || 0) / totalSessionsCount.count) * 100
         : 0;
 
       // Stage dropoffs - count sessions at each stage (last stage they reached)
@@ -332,7 +332,7 @@ export class DatabaseStorage implements IStorage {
         .from(chatMessages)
         .where(sql`${chatMessages.stage} IS NOT NULL`)
         .groupBy(chatMessages.stage);
-      
+
       const stageDropoffs: Record<string, number> = {};
       for (const row of stageResults) {
         if (row.stage) {
@@ -351,7 +351,7 @@ export class DatabaseStorage implements IStorage {
         .where(gte(chatMessages.createdAt, sevenDaysAgo))
         .groupBy(sql`DATE(${chatMessages.createdAt})`)
         .orderBy(sql`DATE(${chatMessages.createdAt})`);
-      
+
       const messagesByDay = dailyResults.map(row => ({
         date: String(row.date),
         count: row.count
@@ -370,7 +370,7 @@ export class DatabaseStorage implements IStorage {
   async getVerifiedResources(filters?: { type?: string; field?: string; isActive?: string }): Promise<VerifiedResource[]> {
     return executeWithRetry(async () => {
       let query = db!.select().from(verifiedResources);
-      
+
       if (filters?.isActive) {
         query = query.where(eq(verifiedResources.isActive, filters.isActive)) as typeof query;
       }
@@ -380,7 +380,7 @@ export class DatabaseStorage implements IStorage {
       if (filters?.field) {
         query = query.where(eq(verifiedResources.field, filters.field)) as typeof query;
       }
-      
+
       return query;
     }, 'getVerifiedResources');
   }
@@ -422,11 +422,11 @@ export class DatabaseStorage implements IStorage {
         eq(verifiedResources.field, field),
         eq(verifiedResources.isActive, 'yes')
       ];
-      
+
       if (type) {
         conditions.push(eq(verifiedResources.type, type));
       }
-      
+
       return db!
         .select()
         .from(verifiedResources)
@@ -591,7 +591,7 @@ export class MemStorage implements IStorage {
       if (feedback.rating === 'up') thumbsUp++;
       else if (feedback.rating === 'down') thumbsDown++;
     }
-    
+
     let totalRating = 0;
     let totalSessionFeedback = 0;
     for (const feedback of this.sessionFeedbackMap.values()) {
@@ -608,21 +608,21 @@ export class MemStorage implements IStorage {
   }
 
   // Behavior Analytics
-  async getBehaviorStats(): Promise<{ 
-    avgMessagesPerSession: number; 
-    completionRate: number; 
+  async getBehaviorStats(): Promise<{
+    avgMessagesPerSession: number;
+    completionRate: number;
     stageDropoffs: Record<string, number>;
     messagesByDay: { date: string; count: number }[];
   }> {
     const sessionCount = this.chatSessions.size;
-    const avgMessagesPerSession = sessionCount > 0 
-      ? this.chatMessages.length / sessionCount 
+    const avgMessagesPerSession = sessionCount > 0
+      ? this.chatMessages.length / sessionCount
       : 0;
 
     // Count sessions with commitment stage
     const sessionsWithCommitment = new Set<string>();
     const stageDropoffs: Record<string, number> = {};
-    
+
     for (const msg of this.chatMessages) {
       if (msg.stage) {
         stageDropoffs[msg.stage] = (stageDropoffs[msg.stage] || 0) + 1;
@@ -632,14 +632,14 @@ export class MemStorage implements IStorage {
       }
     }
 
-    const completionRate = sessionCount > 0 
-      ? (sessionsWithCommitment.size / sessionCount) * 100 
+    const completionRate = sessionCount > 0
+      ? (sessionsWithCommitment.size / sessionCount) * 100
       : 0;
 
     // Messages by day (last 7 days)
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const dayMap = new Map<string, number>();
-    
+
     for (const msg of this.chatMessages) {
       if (msg.createdAt && msg.createdAt >= sevenDaysAgo) {
         const date = msg.createdAt.toISOString().split('T')[0];
@@ -707,7 +707,7 @@ export class MemStorage implements IStorage {
   async updateVerifiedResource(id: string, data: Partial<InsertVerifiedResource>): Promise<VerifiedResource | undefined> {
     const existing = this.verifiedResourcesMap.get(id);
     if (!existing) return undefined;
-    
+
     const updated: VerifiedResource = {
       ...existing,
       ...data,
@@ -724,13 +724,14 @@ export class MemStorage implements IStorage {
   async getResourcesByField(field: string, type?: string): Promise<VerifiedResource[]> {
     let resources = Array.from(this.verifiedResourcesMap.values())
       .filter(r => r.field === field && r.isActive === 'yes');
-    
+
     if (type) {
       resources = resources.filter(r => r.type === type);
     }
-    
+
     return resources;
   }
 }
 
-export const storage = process.env.DATABASE_URL ? new DatabaseStorage() : new MemStorage();
+const isHelium = process.env.DATABASE_URL?.includes('@helium');
+export const storage = (process.env.DATABASE_URL && !isHelium) ? new DatabaseStorage() : new MemStorage();
