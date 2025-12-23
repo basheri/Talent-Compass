@@ -8,12 +8,32 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { authStorage } from "./storage";
 
+async function discoverWithRetry(maxRetries = 3, delayMs = 1000) {
+  const issuerUrl = new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc");
+  const clientId = process.env.REPL_ID!;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await client.discovery(issuerUrl, clientId);
+    } catch (error: any) {
+      const isDnsError = error?.code === 'EAI_AGAIN' || 
+                         error?.message?.includes('EAI_AGAIN') ||
+                         error?.code === 'ENOTFOUND';
+      
+      if (isDnsError && attempt < maxRetries) {
+        console.log(`OIDC discovery attempt ${attempt} failed (DNS error), retrying in ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('OIDC discovery failed after all retries');
+}
+
 const getOidcConfig = memoize(
   async () => {
-    return await client.discovery(
-      new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
-      process.env.REPL_ID!
-    );
+    return await discoverWithRetry(3, 1000);
   },
   { maxAge: 3600 * 1000 }
 );

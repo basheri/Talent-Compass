@@ -131,9 +131,25 @@ const isAdmin = (req: any, res: any, next: any) => {
 };
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
-  // Setup authentication
-  // await setupAuth(app);
-  // registerAuthRoutes(app);
+  // Setup authentication with retry for DNS issues
+  let authEnabled = false;
+  try {
+    await setupAuth(app);
+    registerAuthRoutes(app);
+    authEnabled = true;
+    console.log("Replit Auth initialized successfully");
+  } catch (error) {
+    console.error("Failed to setup Replit Auth:", error);
+    console.log("Admin routes will return 503 due to auth failure");
+  }
+
+  // Middleware to check if auth is enabled
+  const requireAuth: any = (req: any, res: any, next: any) => {
+    if (!authEnabled) {
+      return res.status(503).json({ error: "Authentication service unavailable. Please try again later." });
+    }
+    next();
+  };
 
   // Public chat endpoint with analytics logging
   app.post("/api/chat", async (req, res) => {
@@ -204,9 +220,9 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // Admin: Get analytics stats
-  // Dev mode bypass: skip auth if not in production
+  // Dev mode bypass: skip auth if not in production, but always check if auth is enabled in prod
   const adminMiddleware = process.env.NODE_ENV === 'production'
-    ? [isAuthenticated, isAdmin]
+    ? [requireAuth, isAuthenticated, isAdmin]
     : [];
 
   app.get("/api/admin/stats", ...adminMiddleware, async (req, res) => {
