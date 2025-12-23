@@ -87,6 +87,14 @@ A chat-based AI career consulting tool. Sanad (سند - meaning "support" in Ara
 - **Session Analytics:** Tracks unique users, total messages, active users (24h)
 - **Dynamic System Prompt:** Editable from admin dashboard, stored in PostgreSQL
 - **Replit Auth:** OAuth login for admin access
+- **Database Resilience:** Retry logic for transient DNS/network errors (5 attempts, exponential backoff 500ms-8s with jitter)
+- **Health Endpoints:** `/api/health` and `/health/db` for monitoring database connectivity
+
+### Database Configuration
+- **Connection:** Uses DATABASE_URL only (ignores PGHOST, PGUSER, etc.)
+- **SSL:** Auto-detection for Neon databases
+- **Retry Logic:** Transient errors (EAI_AGAIN, ECONNRESET, ETIMEDOUT) trigger retries; SQL/constraint errors do not
+- **Error Handling:** DatabaseTemporaryError with type='DB_TEMPORARY_FAILURE' returns HTTP 503
 
 ## External Dependencies
 
